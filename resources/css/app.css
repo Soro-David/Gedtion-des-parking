@@ -1,0 +1,164 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    /* Brand Colors (Burgundy Identity) */
+    --primary: 12 62 173; /* #0C3EAD */
+    --primary-light: 105 33 52;
+    --primary-dark: 45 14 22;
+    --secondary: 168 85 247; /* Purple 500 */
+    --accent: 236 72 153; /* Pink 500 */
+    
+    /* Semantic Colors */
+    --success: 34 197 94; /* Green 500 */
+    --warning: 245 158 11; /* Amber 500 */
+    --error: 239 68 68; /* Red 500 */
+    --info: 59 130 246; /* Blue 500 */
+
+    /* Neutral Palette */
+    --slate-50: 248 250 252;
+    --slate-100: 241 245 249;
+    --slate-200: 226 232 240;
+    --slate-300: 203 213 225;
+    --slate-400: 148 163 184;
+    --slate-500: 100 116 139;
+    --slate-600: 71 85 105;
+    --slate-700: 51 65 85;
+    --slate-800: 30 41 59;
+    --slate-900: 15 23 42;
+
+    /* Surfaces */
+    --surface: 255 255 255;
+    --background: 248 250 252;
+    --glass: rgba(255, 255, 255, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.5);
+    --transition-smooth: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@layer base {
+    * {
+        border-color: rgb(var(--slate-200));
+        cursor: default;
+    }
+
+    button, a, input, select, textarea, [role="button"] {
+        cursor: pointer;
+    }
+
+    html {
+        scroll-behavior: smooth;
+    }
+
+    body {
+        font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+        background-color: rgb(var(--slate-50));
+        color: rgb(var(--slate-800));
+        @apply antialiased selection:bg-indigo-100 selection:text-indigo-900;
+        overflow-x: hidden;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+        color: rgb(var(--slate-900));
+        @apply font-bold tracking-tight;
+    }
+}
+
+@layer components {
+    .glass-card {
+        @apply bg-white/70 backdrop-blur-xl border border-white/40 shadow-xl shadow-indigo-100/20;
+    }
+
+    .glass-dark {
+        @apply bg-slate-900/80 backdrop-blur-xl border border-slate-700/30 shadow-2xl;
+    }
+
+    .btn-gradient {
+        @apply bg-gradient-to-br from-indigo-600 via-indigo-600 to-purple-600 text-white 
+               hover:shadow-lg hover:shadow-indigo-200 hover:-translate-y-0.5 active:translate-y-0 
+               transition-all duration-300 disabled:opacity-50 disabled:pointer-events-none;
+    }
+
+    .input-premium {
+        @apply w-full px-4 py-3 bg-white/50 border border-slate-100 rounded-2xl focus:bg-white 
+               focus:ring-4 focus:ring-indigo-100/50 focus:border-indigo-400 outline-none 
+               transition-all duration-300 placeholder:text-slate-400 text-slate-700;
+    }
+
+    .badge-modern {
+        @apply px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider;
+    }
+}
+
+@layer utilities {
+    .text-gradient {
+        @apply bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600;
+    }
+
+    .shadow-soft {
+        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
+    }
+
+    .shadow-premium {
+        box-shadow: 0 20px 40px -15px rgba(99, 102, 241, 0.15);
+    }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    @apply bg-slate-200 rounded-full hover:bg-slate-300 transition-colors;
+}
+
+/* Page Transitions */
+.page-enter-active,
+.page-leave-active {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.page-enter-from {
+    opacity: 0;
+    transform: translateY(10px);
+}
+
+.page-leave-to {
+    opacity: 0;
+    transform: translateY(-10px);
+}
+
+/* Micro-animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.stagger-1 { animation-delay: 0.1s; }
+.stagger-2 { animation-delay: 0.2s; }
+.stagger-3 { animation-delay: 0.3s; }
+
+/* Interactive Hover Effects */
+.hover-lift {
+    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-xl;
+}
+
+/* Glassmorphism Refinement */
+.glass-effect {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+}
