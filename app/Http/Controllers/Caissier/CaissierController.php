@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Caissier;
 
 use App\Http\Controllers\Controller;
 use App\Models\ParkingSession;
+use App\Models\Reversement;
 use App\Models\Versement;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
@@ -22,8 +23,10 @@ class CaissierController extends Controller
         $base = ParkingSession::where('closed_by', $user->id)
             ->where('status', 'released');
 
-        // Dette = montant non encore reversé
-        $dette = (clone $base)->whereNull('reversement_id')->sum('amount');
+        // Dette = montant total encaissé − total des reversements effectués
+        $montantTotal   = (clone $base)->sum('amount');
+        $totalReverse   = Reversement::where('user_id', $user->id)->sum('amount');
+        $dette          = max(0, $montantTotal - $totalReverse);
 
         // Montants encaissés
         $montantJour  = (clone $base)->whereDate('ended_at', $now->toDateString())->sum('amount');

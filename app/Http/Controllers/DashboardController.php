@@ -6,6 +6,8 @@ use App\Models\User;
 use App\Models\ParkingAttendant;
 use App\Models\Driver;
 use App\Models\Parking;
+use App\Models\ParkingSession;
+use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 
 class DashboardController extends Controller
@@ -42,10 +44,56 @@ class DashboardController extends Controller
                 break;
 
             case User::ROLE_ATTENDANT:
+                $now  = Carbon::now();
                 $myDrivers = Driver::where('created_by', $user->id);
+
+                // Base query : sessions clôturées par cet agent
+                $base = ParkingSession::where('closed_by', $user->id)
+                    ->where('status', 'released');
+
+                // Dette = montant total encaissé − total des reversements effectués
+                $montantTotal = (clone $base)->sum('amount');
+                $totalReverse = \App\Models\Reversement::where('user_id', $user->id)->sum('amount');
+                $dette        = max(0, $montantTotal - $totalReverse);
+
+                // Montants encaissés
+                $montantJour  = (clone $base)->whereDate('ended_at', $now->toDateString())->sum('amount');
+                $montantMois  = (clone $base)->whereYear('ended_at', $now->year)->whereMonth('ended_at', $now->month)->sum('amount');
+                $montantAnnee = (clone $base)->whereYear('ended_at', $now->year)->sum('amount');
+
+                // Nombre de sorties
+                $nbJour  = (clone $base)->whereDate('ended_at', $now->toDateString())->count();
+                $nbMois  = (clone $base)->whereYear('ended_at', $now->year)->whereMonth('ended_at', $now->month)->count();
+                $nbAnnee = (clone $base)->whereYear('ended_at', $now->year)->count();
+
+                // Dernières sorties enregistrées par l'agent
+                $dernieresSessions = ParkingSession::with('parking')
+                    ->where('closed_by', $user->id)
+                    ->where('status', 'released')
+                    ->latest('ended_at')
+                    ->take(5)
+                    ->get()
+                    ->map(fn($s) => [
+                        'id'            => $s->id,
+                        'license_plate' => $s->license_plate,
+                        'marque'        => $s->marque,
+                        'modele'        => $s->modele,
+                        'parking_name'  => $s->parking?->name,
+                        'ended_at'      => $s->ended_at?->toDateTimeString(),
+                        'amount'        => $s->amount,
+                    ]);
+
                 $stats = [
-                    'drivers'       => $myDrivers->count(),
-                    'today_drivers' => (clone $myDrivers)->whereDate('created_at', today())->count(),
+                    'drivers'          => $myDrivers->count(),
+                    'today_drivers'    => (clone $myDrivers)->whereDate('created_at', today())->count(),
+                    'dette'            => $dette,
+                    'montantJour'      => $montantJour,
+                    'montantMois'      => $montantMois,
+                    'montantAnnee'     => $montantAnnee,
+                    'nbJour'           => $nbJour,
+                    'nbMois'           => $nbMois,
+                    'nbAnnee'          => $nbAnnee,
+                    'dernieresSessions'=> $dernieresSessions,
                 ];
                 break;
 
