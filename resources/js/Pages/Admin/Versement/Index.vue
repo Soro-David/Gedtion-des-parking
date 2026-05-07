@@ -4,6 +4,9 @@ import { Head, useForm } from '@inertiajs/vue3';
 import { ref, computed, watch } from 'vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import Pagination from '@/Components/Pagination.vue';
+import { useAutoRefresh } from '@/Composables/useAutoRefresh.js';
+
+useAutoRefresh();
 
 const props = defineProps({
     agents:     { type: Array, default: () => [] },

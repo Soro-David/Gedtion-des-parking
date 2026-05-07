@@ -1,6 +1,9 @@
 ﻿<script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link } from '@inertiajs/vue3';
+import { useAutoRefresh } from '@/Composables/useAutoRefresh.js';
+
+useAutoRefresh();
 
 const props = defineProps({
     stats: {

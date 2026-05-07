@@ -2,6 +2,9 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
+import { useAutoRefresh } from '@/Composables/useAutoRefresh.js';
+
+useAutoRefresh();
 
 const props = defineProps({
     pendingAmount:   { type: Number, default: 0 },

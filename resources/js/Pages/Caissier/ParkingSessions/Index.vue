@@ -3,6 +3,9 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import PrimaryLinkButton from '@/Components/PrimaryLinkButton.vue';
 import { computed } from 'vue';
+import { useAutoRefresh } from '@/Composables/useAutoRefresh.js';
+
+useAutoRefresh();
 
 defineProps({
     sessions: Array,

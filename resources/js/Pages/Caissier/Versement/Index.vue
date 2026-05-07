@@ -2,6 +2,9 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import { useAutoRefresh } from '@/Composables/useAutoRefresh.js';
+
+useAutoRefresh();
 
 const props = defineProps({
     versements: { type: Array, default: () => [] },

@@ -4,6 +4,9 @@ import { Head, Link, usePage } from '@inertiajs/vue3';
 import PreviousMap_ from 'postcss/lib/previous-map';
 import { computed } from 'vue';
 import PrimaryLinkButton from '@/Components/PrimaryLinkButton.vue';
+import { useAutoRefresh } from '@/Composables/useAutoRefresh.js';
+
+useAutoRefresh();
 
 defineProps({
     sessions: Array,

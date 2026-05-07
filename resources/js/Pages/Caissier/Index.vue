@@ -1,6 +1,9 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link } from '@inertiajs/vue3';
+import { useAutoRefresh } from '@/Composables/useAutoRefresh.js';
+
+useAutoRefresh();
 
 const props = defineProps({
     dette:             { type: Number, default: 0 },
@@ -44,10 +47,10 @@ const fmtDate = (dt) => {
                     <p class="text-sm font-bold text-red-700">Montant non reversé (dette)</p>
                     <p class="text-2xl font-black text-red-600 mt-0.5">{{ fmt(dette) }}</p>
                 </div>
-                <Link :href="route('caissier.reversements.index')"
+                <!-- <Link :href="route('caissier.reversements.index')"
                     class="px-4 py-2 bg-red-600 text-white text-sm font-bold rounded-xl hover:bg-red-700 transition-colors shrink-0">
                     Reverser
-                </Link>
+                </Link> -->
             </div>
             <div v-else class="flex items-center gap-4 bg-green-50 border border-green-200 rounded-2xl px-6 py-4">
                 <div class="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center shrink-0">
