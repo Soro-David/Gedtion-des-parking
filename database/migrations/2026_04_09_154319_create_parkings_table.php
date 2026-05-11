@@ -21,6 +21,7 @@ return new class extends Migration
             $table->integer('capacity');
             $table->decimal('price', 10, 2);
             $table->string('image')->nullable();
+            $table->boolean('is_active')->default(true);
             $table->foreignId('created_by')->constrained('users')->onDelete('cascade');
             $table->timestamps();
         });

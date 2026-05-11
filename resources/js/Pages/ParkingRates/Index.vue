@@ -196,10 +196,11 @@ const formatDuration = (from, to) => {
                                         </td>
                                         <td class="px-5 py-3">
                                             <div class="flex items-center gap-1">
-                                                <input v-model.number="editForm.from_minutes" type="number" min="0" class="border border-gray-200 rounded-lg px-2 py-1.5 text-sm w-16 focus:ring-2 focus:ring-green-500 outline-none" />
+                                                <input v-model.number="editForm.from_minutes" type="number" min="0" :class="['border rounded-lg px-2 py-1.5 text-sm w-16 focus:ring-2 focus:ring-green-500 outline-none', editForm.errors.from_minutes ? 'border-red-400' : 'border-gray-200']" />
                                                 <span class="text-gray-400 text-xs">–</span>
-                                                <input v-model="editForm.to_minutes" type="number" min="1" placeholder="∞" class="border border-gray-200 rounded-lg px-2 py-1.5 text-sm w-16 focus:ring-2 focus:ring-green-500 outline-none" />
+                                                <input v-model="editForm.to_minutes" type="number" min="1" placeholder="∞" :class="['border rounded-lg px-2 py-1.5 text-sm w-16 focus:ring-2 focus:ring-green-500 outline-none', editForm.errors.from_minutes ? 'border-red-400' : 'border-gray-200']" />
                                             </div>
+                                            <p v-if="editForm.errors.from_minutes" class="mt-1 text-xs text-red-600">{{ editForm.errors.from_minutes }}</p>
                                         </td>
                                         <td class="px-5 py-3">
                                             <input v-model.number="editForm.amount" type="number" min="0" step="50" class="border border-gray-200 rounded-lg px-2 py-1.5 text-sm w-24 focus:ring-2 focus:ring-green-500 outline-none" />

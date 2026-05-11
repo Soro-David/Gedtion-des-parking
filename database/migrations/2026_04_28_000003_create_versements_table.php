@@ -11,8 +11,10 @@ return new class extends Migration
         // Table principale des versements (initiés par admin/superviseur)
         Schema::create('versements', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('admin_id')->constrained('users')->onDelete('cascade');   // admin ou superviseur
-            $table->foreignId('agent_id')->constrained('users')->onDelete('cascade');   // agent ou caissier
+            $table->foreignId('admin_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('agent_id')->constrained('users')->onDelete('cascade')->nullable();
+            $table->foreignId('caissier_id')->nullable()->constrained('users')->onDelete('cascade');
+            $table->foreignId('agent_id')->nullable()->change();
             $table->decimal('collected_amount', 12, 2)->default(0); // montant encaissé depuis dernier versement
             $table->decimal('previous_debt', 12, 2)->default(0);    // dette cumulée des versements précédents
             $table->decimal('total_due', 12, 2)->default(0);        // collected_amount + previous_debt

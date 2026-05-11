@@ -10,6 +10,7 @@ import TextInput from '@/Components/TextInput.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import MultiSelectDropdown from '@/Components/MultiSelectDropdown.vue';
 import UserFormFields from '@/Components/Layout/UserFormFields.vue';
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 
 const props = defineProps({
     users:    { type: Array, default: () => [] },
@@ -151,15 +152,13 @@ const submit = () => {
                 </p>
             </div>
 
-            <button
+            <PrimaryButton
                 @click="openModal"
                 class="inline-flex items-center gap-2 px-5 py-2.5 bg-[#143f85] text-white text-sm font-semibold rounded-2xl hover:bg-[#0e2f63] transition-all duration-200 shadow-sm hover:shadow-md"
             >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" />
-                </svg>
+                <FontAwesomeIcon icon="add"/>
                 Ajouter un Utilisateur
-            </button>
+            </PrimaryButton>
         </div>
 
         <!-- Filtres par rôle -->
@@ -208,7 +207,7 @@ const submit = () => {
                                         <div class="font-bold text-gray-900 group-hover:text-[#143f85] transition-colors">
                                             {{ user.name }} {{ user.first_name }}
                                         </div>
-                                        <div class="text-xs text-gray-400">ID: #{{ user.id.toString().padStart(4, '0') }}</div>
+                                        <!-- <div class="text-xs text-gray-400">ID: #{{ user.id.toString().padStart(4, '0') }}</div> -->
                                     </div>
                                 </div>
                             </td>

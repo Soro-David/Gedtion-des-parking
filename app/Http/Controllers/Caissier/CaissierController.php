@@ -23,10 +23,13 @@ class CaissierController extends Controller
         $base = ParkingSession::where('closed_by', $user->id)
             ->where('status', 'released');
 
-        // Dette = montant total encaissé − total des reversements effectués
-        $montantTotal   = (clone $base)->sum('amount');
-        $totalReverse   = Reversement::where('user_id', $user->id)->sum('amount');
-        $dette          = max(0, $montantTotal - $totalReverse);
+        // Dette = sessions non encore collectées + dette résiduelle du dernier versement
+        $pendingAmount  = (clone $base)
+            ->whereNull('versement_id')
+            ->whereNull('reversement_id')
+            ->sum('amount');
+        $previousDebt   = Versement::where('caissier_id', $user->id)->latest()->value('remaining_debt') ?? 0;
+        $dette          = max(0, $pendingAmount + $previousDebt);
 
         // Montants encaissés
         $montantJour  = (clone $base)->whereDate('ended_at', $now->toDateString())->sum('amount');

@@ -5,6 +5,7 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import PrimaryLinkButton from '@/Components/PrimaryLinkButton.vue';
 import ParkingsMapView from '@/Components/ParkingsMapView.vue';
 import { ref } from 'vue';
+import { useAutoRefresh } from '@/Composables/useAutoRefresh';
 
 defineProps({
     parkings: Array,
@@ -12,6 +13,8 @@ defineProps({
 
 const form = useForm({});
 const viewMode = ref('grid'); // 'grid' ou 'map'
+
+useAutoRefresh();
 
 const deleteParking = (id) => {
     if (confirm('Êtes-vous sûr de vouloir supprimer ce parking ?')) {

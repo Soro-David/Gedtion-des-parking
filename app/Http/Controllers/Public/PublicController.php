@@ -80,7 +80,7 @@ class PublicController extends Controller
         ]);
 
         // TODO: envoyer un email avec Mail::to(config('mail.from.address'))->send(new ContactMail($validated));
-        // Pour l'instant, on retourne juste un succès
+        // Pour l'instant, on retourne juste un succès 
         return back()->with('success', 'Votre message a bien été envoyé. Nous vous répondrons dans les plus brefs délais.');
     }
 }

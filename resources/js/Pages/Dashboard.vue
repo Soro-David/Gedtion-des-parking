@@ -8,6 +8,7 @@ import AdminDashboard from './Roles/AdminDashboard.vue';
 import SupervisorDashboard from './Roles/SupervisorDashboard.vue';
 import AttendantDashboard from './Roles/AttendantDashboard.vue';
 import DriverDashboard from './Roles/DriverDashboard.vue';
+import { useAutoRefresh } from '@/Composables/useAutoRefresh';
 
 import { ROLE_ADMIN, ROLE_SUPERVISOR, ROLE_ATTENDANT, ROLE_DRIVER, ROLE_LABELS } from '@/Constants/Roles';
 
@@ -15,6 +16,8 @@ const page = usePage();
 const user = computed(() => page.props.auth.user);
 const role = computed(() => user.value.role);
 const stats = computed(() => page.props.stats ?? {});
+
+useAutoRefresh();
 
 const roleDisplayName = computed(() => ROLE_LABELS[role.value] || 'Utilisateur');
 </script>

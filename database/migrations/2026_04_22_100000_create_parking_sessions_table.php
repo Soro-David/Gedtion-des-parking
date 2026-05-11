@@ -14,9 +14,13 @@ return new class extends Migration
             $table->string('license_plate');
             $table->string('marque')->nullable();
             $table->string('modele')->nullable();
+            $table->string('vehicle_image')->nullable();
             $table->enum('status', ['occupied', 'released'])->default('occupied');
             $table->timestamp('started_at');
             $table->timestamp('ended_at')->nullable();
+            $table->decimal('amount', 10, 2)->nullable();
+            $table->foreignId('closed_by')->nullable()->constrained('users')->onDelete('set null');
+            $table->foreignId('reversement_id')->nullable()->constrained('reversements')->onDelete('set null');
             $table->foreignId('created_by')->constrained('users')->onDelete('cascade');
             $table->timestamps();
         });

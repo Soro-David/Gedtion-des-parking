@@ -1,11 +1,26 @@
 <script setup>
 import { Link } from '@inertiajs/vue3';
+import { ref, computed } from 'vue';
 
 const props = defineProps({
     stats: {
         type: Object,
         default: () => ({ }),
     },
+});
+
+const filtre = ref('jour');
+
+const montantFiltre = computed(() => {
+    if (filtre.value === 'mois') return props.stats.montantMois ?? 0;
+    if (filtre.value === 'annee') return props.stats.montantAnnee ?? 0;
+    return props.stats.montantJour ?? 0;
+});
+
+const nbFiltre = computed(() => {
+    if (filtre.value === 'mois') return props.stats.nbMois ?? 0;
+    if (filtre.value === 'annee') return props.stats.nbAnnee ?? 0;
+    return props.stats.nbJour ?? 0;
 });
 
 const fmt = (n) => new Intl.NumberFormat('fr-FR').format(n ?? 0) + ' FCFA';
@@ -22,54 +37,58 @@ const fmtDate = (dt) => {
 <template>
     <div class="space-y-8">
 
-        <!-- ── Dette ──────────────────────────────────────────── -->
-        <div v-if="stats.dette > 0" class="flex items-center gap-4 bg-red-50 border border-red-200 rounded-2xl px-6 py-4">
-            <div class="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center shrink-0">
-                <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
-                </svg>
-            </div>
-            <div class="flex-1">
-                <p class="text-sm font-bold text-red-700">Montant non reversé (dette)</p>
-                <p class="text-2xl font-black text-red-600 mt-0.5">{{ fmt(stats.dette) }}</p>
-            </div>
-            <Link :href="route('attendant.reversements.index')"
-                class="px-4 py-2 bg-red-600 text-white text-sm font-bold rounded-xl hover:bg-red-700 transition-colors shrink-0">
-                Reverser
-            </Link>
-        </div>
-        <div v-else class="flex items-center gap-4 bg-green-50 border border-green-200 rounded-2xl px-6 py-4">
-            <div class="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center shrink-0">
-                <svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                </svg>
-            </div>
-            <div>
-                <p class="text-sm font-bold text-green-700">Aucune dette en cours</p>
-                <p class="text-xs text-green-600 mt-0.5">Tous vos montants ont été reversés.</p>
-            </div>
-        </div>
+        <!-- ── Dette + Montants encaissés (même ligne) ─────────────────── -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch">
 
-        <!-- ── Montants encaissés ──────────────────────────────── -->
-        <div>
-            <h2 class="text-base font-black text-gray-500 uppercase tracking-widest mb-4">Montants encaissés</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-1">
-                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Aujourd'hui</p>
-                    <p class="text-2xl font-black text-gray-900">{{ fmt(stats.montantJour) }}</p>
-                    <p class="text-sm text-gray-500">{{ stats.nbJour ?? 0 }} sortie{{ (stats.nbJour ?? 0) > 1 ? 's' : '' }}</p>
+            <!-- Card dette -->
+            <div :class="['rounded-2xl border shadow-sm p-6 flex flex-col justify-between', stats.dette > 0 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200']">
+                <div class="flex items-start justify-between mb-3">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-widest" :class="stats.dette > 0 ? 'text-red-500' : 'text-green-500'">Montant non reversé (dette)</p>
+                        <p class="text-xs mt-0.5" :class="stats.dette > 0 ? 'text-red-400' : 'text-green-400'">Sorties − versements reçus</p>
+                    </div>
+                    <div :class="['w-10 h-10 rounded-xl flex items-center justify-center shrink-0', stats.dette > 0 ? 'bg-red-100' : 'bg-green-100']">
+                        <svg v-if="stats.dette > 0" class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                        </svg>
+                        <svg v-else class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                    </div>
                 </div>
-                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-1">
-                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Ce mois</p>
-                    <p class="text-2xl font-black text-gray-900">{{ fmt(stats.montantMois) }}</p>
-                    <p class="text-sm text-gray-500">{{ stats.nbMois ?? 0 }} sortie{{ (stats.nbMois ?? 0) > 1 ? 's' : '' }}</p>
-                </div>
-                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-1">
-                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Cette année</p>
-                    <p class="text-2xl font-black text-gray-900">{{ fmt(stats.montantAnnee) }}</p>
-                    <p class="text-sm text-gray-500">{{ stats.nbAnnee ?? 0 }} sortie{{ (stats.nbAnnee ?? 0) > 1 ? 's' : '' }}</p>
+                <p :class="['text-3xl font-black', stats.dette > 0 ? 'text-red-600' : 'text-green-600']">{{ fmt(stats.dette) }}</p>
+                <div class="mt-3">
+                    <Link v-if="stats.dette > 0" :href="route('attendant.reversements.index')"
+                        class="inline-block px-4 py-1.5 bg-red-600 text-white text-xs font-bold rounded-xl hover:bg-red-700 transition-colors">
+                        Reverser
+                    </Link>
+                    <p v-else class="text-xs font-semibold text-green-600">Aucune dette en cours ✓</p>
                 </div>
             </div>
+
+            <!-- Card montants encaissés -->
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col justify-between">
+                <div class="flex items-start justify-between mb-3">
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Montants encaissés</p>
+                    <div class="flex gap-1 bg-gray-100 rounded-xl p-1">
+                        <button @click="filtre = 'jour'"
+                            :class="['px-2.5 py-1 rounded-lg text-xs font-bold transition-all', filtre === 'jour' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700']">
+                            Jour
+                        </button>
+                        <button @click="filtre = 'mois'"
+                            :class="['px-2.5 py-1 rounded-lg text-xs font-bold transition-all', filtre === 'mois' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700']">
+                            Mois
+                        </button>
+                        <button @click="filtre = 'annee'"
+                            :class="['px-2.5 py-1 rounded-lg text-xs font-bold transition-all', filtre === 'annee' ? 'bg-white shadow text-blue-600' : 'text-gray-500 hover:text-gray-700']">
+                            Année
+                        </button>
+                    </div>
+                </div>
+                <p class="text-3xl font-black text-gray-900">{{ fmt(montantFiltre) }}</p>
+                <p class="text-sm text-gray-500 mt-1">{{ nbFiltre }} sortie{{ nbFiltre > 1 ? 's' : '' }}</p>
+            </div>
+
         </div>
 
         <!-- ── Actions rapides ─────────────────────────────────── -->

@@ -3,7 +3,9 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref, onUnmounted } from 'vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
+import { useAutoRefresh } from '@/Composables/useAutoRefresh';
 
+useAutoRefresh(30000); 
 const props = defineProps({
     plate:    { type: String, default: '' },
     sessions: { type: Array, default: () => [] },

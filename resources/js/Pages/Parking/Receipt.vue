@@ -39,6 +39,12 @@ const printReceipt = () => window.print();
     <!-- Boutons d'action (masqués à l'impression) -->
     <div class="no-print min-h-screen bg-gray-100 flex flex-col items-center justify-center p-6 gap-4">
         <div class="flex gap-3 mb-2">
+            <a href="javascript:history.back()" class="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-xl text-sm font-semibold transition-all shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                Retour
+            </a>
             <Link
                 :href="historyRoute"
                 class="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-xl text-sm font-semibold transition-all shadow-sm"
