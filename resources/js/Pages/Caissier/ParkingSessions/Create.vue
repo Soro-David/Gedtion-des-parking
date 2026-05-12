@@ -111,8 +111,8 @@ const submit = () => {
                         </div>
 
                         <!-- 1 seul parking → carte fixe, pas de changement -->
-                        <div v-else-if="isSingleParking" class="flex items-center gap-3 px-4 py-3 rounded-2xl border-2 border-[#487119] bg-green-50">
-                            <div class="w-8 h-8 rounded-lg bg-[#487119] text-white flex items-center justify-center flex-shrink-0">
+                        <div v-else-if="isSingleParking" class="flex items-center gap-3 px-4 py-3 rounded-2xl border-2 border-[#143f85] bg-green-50">
+                            <div class="w-8 h-8 rounded-lg bg-[#143f85] text-white flex items-center justify-center flex-shrink-0">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                                 </svg>
@@ -121,7 +121,7 @@ const submit = () => {
                                 <p class="text-sm font-bold text-gray-800">{{ parkings[0].name }}</p>
                                 <p class="text-xs text-gray-500">
                                     Réf. {{ parkings[0].reference }} ·
-                                    <span :class="parkings[0].available_spots > 0 ? 'text-green-600' : 'text-red-600'" class="font-semibold">
+                                    <span :class="parkings[0].available_spots > 0 ? 'text-[#143f85]' : 'text-red-600'" class="font-semibold">
                                         {{ parkings[0].available_spots }} place{{ parkings[0].available_spots !== 1 ? 's' : '' }} libre{{ parkings[0].available_spots !== 1 ? 's' : '' }}
                                     </span>
                                 </p>
