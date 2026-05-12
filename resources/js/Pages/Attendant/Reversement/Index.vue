@@ -3,6 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 import { useAutoRefresh } from '@/Composables/useAutoRefresh.js';
+import CancelButton from '@/Components/CancelButton.vue';
 
 useAutoRefresh();
 
@@ -141,9 +142,9 @@ const confirmed = computed(() => props.reversements.filter(r => r.status === 'co
                         >
                             {{ form.processing ? 'Envoi…' : 'Confirmer le reversement' }}
                         </button>
-                        <button type="button" @click="showForm = false" class="px-6 py-2.5 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors">
+                        <CancelButton type="button" @click="showForm = false">
                             Annuler
-                        </button>
+                        </CancelButton>
                     </div>
                 </form>
             </div>

@@ -11,6 +11,7 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import MultiSelectDropdown from '@/Components/MultiSelectDropdown.vue';
 import UserFormFields from '@/Components/Layout/UserFormFields.vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
+import CancelButton from '@/Components/CancelButton.vue';
 
 const props = defineProps({
     users:    { type: Array, default: () => [] },
@@ -396,13 +397,12 @@ const submit = () => {
 
             <!-- Footer -->
             <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50">
-                <button
+                <CancelButton
                     type="button"
                     @click="closeModal"
-                    class="px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors"
                 >
                     Annuler
-                </button>
+                </CancelButton>
                 <PrimaryButton
                     @click="submit"
                     :disabled="form.processing || !form.role"

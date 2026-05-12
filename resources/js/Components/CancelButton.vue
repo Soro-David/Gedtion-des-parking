@@ -20,7 +20,7 @@ defineProps({
 <template>
     <Link
         :href="href"
-         class="inline-flex items-center gap-2 px-7 py-2.5 
+         class="inline-flex items-center gap-2 px-8 py-3
             bg-[#787878] text-white 
             hover:bg-white hover:text-[#787878] 
             border border-[#787878] 

@@ -23,7 +23,7 @@ defineProps({
         class="inline-flex items-center justify-center gap-2 px-6 py-3
                bg-[#143f85] text-white
                border border-[#143f85]
-               rounded-2xl font-bold text-sm tracking-wide
+               rounded-xl  font-bold text-sm tracking-wide
                focus:outline-none focus:ring-4 focus:ring-[#143f85]/20
                transition-all duration-300
                hover:bg-white hover:text-[#143f85]

@@ -5,6 +5,7 @@ import { ref, computed, watch } from 'vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import Pagination from '@/Components/Pagination.vue';
 import { useAutoRefresh } from '@/Composables/useAutoRefresh.js';
+import CancelButton from '@/Components/CancelButton.vue';
 
 useAutoRefresh();
 
@@ -286,13 +287,12 @@ const roleLabel = (r) => r === 'attendant' ? 'Agent' : 'Caissier';
                             <!-- Actions -->
                             <div class="flex gap-3 pt-1">
 
-                                 <button
+                                 <CancelButton
                                     type="button"
                                     @click="selected = null"
-                                    class="inline-flex items-center gap-2 px-7 py-2.5 bg-[#787878] text-white hover:bg-white hover:text-[#787878] border border-[#787878] text-sm font-semibold rounded-xl shadow-md transition-all duration-200 hover:-translate-y-0.5 active:scale-95"
                                 >
                                     Annuler
-                                </button>
+                                </CancelButton>
                                 <PrimaryButton :disabled="form.processing">
                                     Enregistrer le versement
                                 </PrimaryButton>

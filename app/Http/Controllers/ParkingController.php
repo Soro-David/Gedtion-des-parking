@@ -15,16 +15,21 @@ class ParkingController extends Controller
      */
     public function index()
     {
-        $parkings = Parking::with([
+        $user  = auth()->user();
+        $query = Parking::with([
                 'creator',
                 'rates' => fn ($q) => $q->orderBy('from_minutes'),
             ])
             ->withCount('activeSessions')
-            ->latest()
-            ->get();
+            ->latest();
+
+        // Un superviseur ne voit que les parkings auxquels il est affecté
+        if ($user->role === \App\Models\User::ROLE_SUPERVISOR) {
+            $query->whereHas('users', fn ($q) => $q->where('users.id', $user->id));
+        }
 
         return Inertia::render('Parking/Index', [
-            'parkings' => $parkings,
+            'parkings' => $query->get(),
         ]);
     }
 
@@ -47,7 +52,6 @@ class ParkingController extends Controller
             'longitude'            => 'nullable|numeric|between:-180,180',
             'latitude'             => 'nullable|numeric|between:-90,90',
             'capacity'             => 'required|integer|min:1',
-            'price'                => 'required|numeric|min:0',
             'image'                => 'nullable|image|max:2048',
             'rates'                => 'nullable|array',
             'rates.*.label'        => 'nullable|string|max:100',
@@ -58,6 +62,22 @@ class ParkingController extends Controller
 
         $rates = $validated['rates'] ?? [];
         unset($validated['rates']);
+
+        // Vérification des chevauchements d'intervalles
+        for ($i = 0; $i < count($rates); $i++) {
+            $aFrom = (int) $rates[$i]['from_minutes'];
+            $aTo   = (isset($rates[$i]['to_minutes']) && $rates[$i]['to_minutes'] !== '') ? (int) $rates[$i]['to_minutes'] : PHP_INT_MAX;
+            if ($aFrom >= $aTo) {
+                return back()->withErrors(['rates' => 'Intervalle ' . ($i + 1) . ' : "De" doit être strictement inférieur à "À".'  ])->withInput();
+            }
+            for ($j = $i + 1; $j < count($rates); $j++) {
+                $bFrom = (int) $rates[$j]['from_minutes'];
+                $bTo   = (isset($rates[$j]['to_minutes']) && $rates[$j]['to_minutes'] !== '') ? (int) $rates[$j]['to_minutes'] : PHP_INT_MAX;
+                if ($aFrom < $bTo && $bFrom < $aTo) {
+                    return back()->withErrors(['rates' => 'Les intervalles ' . ($i + 1) . ' et ' . ($j + 1) . ' se chevauchent.'])->withInput();
+                }
+            }
+        }
 
         if ($request->hasFile('image')) {
             $validated['image'] = $request->file('image')->store('parkings', 'public');
@@ -105,7 +125,6 @@ class ParkingController extends Controller
             'longitude'            => 'nullable|numeric|between:-180,180',
             'latitude'             => 'nullable|numeric|between:-90,90',
             'capacity'             => 'required|integer|min:1',
-            'price'                => 'required|numeric|min:0',
             'image'                => 'nullable|image|max:2048',
             'rates'                => 'nullable|array',
             'rates.*.label'        => 'nullable|string|max:100',
@@ -116,6 +135,22 @@ class ParkingController extends Controller
 
         $rates = $validated['rates'] ?? [];
         unset($validated['rates']);
+
+        // Vérification des chevauchements d'intervalles
+        for ($i = 0; $i < count($rates); $i++) {
+            $aFrom = (int) $rates[$i]['from_minutes'];
+            $aTo   = (isset($rates[$i]['to_minutes']) && $rates[$i]['to_minutes'] !== '') ? (int) $rates[$i]['to_minutes'] : PHP_INT_MAX;
+            if ($aFrom >= $aTo) {
+                return back()->withErrors(['rates' => 'Intervalle ' . ($i + 1) . ' : "De" doit être strictement inférieur à "À".'])->withInput();
+            }
+            for ($j = $i + 1; $j < count($rates); $j++) {
+                $bFrom = (int) $rates[$j]['from_minutes'];
+                $bTo   = (isset($rates[$j]['to_minutes']) && $rates[$j]['to_minutes'] !== '') ? (int) $rates[$j]['to_minutes'] : PHP_INT_MAX;
+                if ($aFrom < $bTo && $bFrom < $aTo) {
+                    return back()->withErrors(['rates' => 'Les intervalles ' . ($i + 1) . ' et ' . ($j + 1) . ' se chevauchent.'])->withInput();
+                }
+            }
+        }
 
         if ($request->hasFile('image')) {
             if ($parking->image) {

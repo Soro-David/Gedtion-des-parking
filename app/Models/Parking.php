@@ -27,6 +27,14 @@ class Parking extends Model
     ];
 
     /**
+     * Users assigned to this parking (supervisors, attendants, caissiers).
+     */
+    public function users()
+    {
+        return $this->belongsToMany(User::class, 'user_parkings')->withTimestamps();
+    }
+
+    /**
      * Get the user who created the parking.
      */
     public function creator()

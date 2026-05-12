@@ -1,28 +1,35 @@
 <script setup>
 /**
- * ParkingSelector — multi-select list of parkings with checkbox UI.
+ * ParkingSelector — select list of parkings with checkbox/radio UI.
  * Props:
- *   parkings: Array<{ id, name, reference, available_spots, capacity }>
- *   modelValue: Array<Number>  (selected parking IDs)
- *   error: String
+ *   parkings:    Array<{ id, name, reference, available_spots, capacity }>
+ *   modelValue:  Array<Number>  (selected parking IDs)
+ *   singleSelect: Boolean — if true, only one parking can be selected at a time
+ *   error:       String
  */
 const props = defineProps({
-    parkings: { type: Array, default: () => [] },
-    modelValue: { type: Array, default: () => [] },
-    error: { type: String, default: '' },
+    parkings:     { type: Array,   default: () => [] },
+    modelValue:   { type: Array,   default: () => [] },
+    singleSelect: { type: Boolean, default: false },
+    error:        { type: String,  default: '' },
 });
 
 const emit = defineEmits(['update:modelValue']);
 
 const toggle = (id) => {
-    const current = [...props.modelValue];
-    const idx = current.indexOf(id);
-    if (idx === -1) {
-        current.push(id);
+    if (props.singleSelect) {
+        // En mode single : si déjà sélectionné on désélectionne, sinon on remplace
+        emit('update:modelValue', props.modelValue.includes(id) ? [] : [id]);
     } else {
-        current.splice(idx, 1);
+        const current = [...props.modelValue];
+        const idx = current.indexOf(id);
+        if (idx === -1) {
+            current.push(id);
+        } else {
+            current.splice(idx, 1);
+        }
+        emit('update:modelValue', current);
     }
-    emit('update:modelValue', current);
 };
 
 const isSelected = (id) => props.modelValue.includes(id);
@@ -45,10 +52,11 @@ const isSelected = (id) => props.modelValue.includes(id);
                         : 'border-gray-200 bg-white hover:border-gray-300',
                 ]"
             >
-                <!-- Checkbox indicator -->
+                <!-- Radio / Checkbox indicator -->
                 <div
                     :class="[
-                        'mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md border-2 transition-colors',
+                        'mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center border-2 transition-colors',
+                        singleSelect ? 'rounded-full' : 'rounded-md',
                         isSelected(p.id) ? 'border-[#487119] bg-[#487119]' : 'border-gray-300 bg-white',
                     ]"
                 >

@@ -7,6 +7,7 @@ import TextInput from '@/Components/TextInput.vue';
 import LicensePlateScanner from '@/Components/LicensePlateScanner.vue';
 import { Head, useForm, Link } from '@inertiajs/vue3';
 import { computed, onMounted } from 'vue';
+import CancelButton from '@/Components/CancelButton.vue';
 
 const props = defineProps({
     parkings: Array,
@@ -225,12 +226,11 @@ const submit = () => {
 
                     <!-- Actions -->
                     <div class="pt-4 border-t border-gray-100 flex items-center justify-between gap-4">
-                        <Link
+                        <CancelButton
                             :href="route('caissier.parking-sessions.index')"
-                            class="px-5 py-2.5 text-sm font-semibold text-gray-500 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all duration-200"
                         >
                             Annuler
-                        </Link>
+                        </CancelButton>
                         <PrimaryButton
                             class=" text-white px-7 py-2.5 rounded-xl font-bold shadow-md transition-all duration-200 hover:-translate-y-0.5 active:scale-95"
                             :class="{ 'opacity-50 cursor-not-allowed': form.processing }"

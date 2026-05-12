@@ -27,7 +27,6 @@ function confirmDelete(id){
             <PrimaryLinkButton
                 :href="route('superadmin.admins.create')"
                 label="Ajouter un Admin"
-                class="inline-flex items-center gap-2 px-5 py-2.5 bg-[#487119] hover:bg-[#3d5e15] text-white text-sm font-semibold rounded-xl shadow-md shadow-green-900/10 transition-all duration-200 hover:-translate-y-0.5 active:scale-95 whitespace-nowrap"
             />
 
         </div>

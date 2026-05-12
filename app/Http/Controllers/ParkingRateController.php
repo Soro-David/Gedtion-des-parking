@@ -11,7 +11,15 @@ class ParkingRateController extends Controller
 {
     public function index()
     {
+        $user = auth()->user();
+
+        $parkingIdsForSupervisor = null;
+        if ($user->role === \App\Models\User::ROLE_SUPERVISOR) {
+            $parkingIdsForSupervisor = $user->parkings()->pluck('parkings.id');
+        }
+
         $rates = ParkingRate::with('parking')
+            ->when($parkingIdsForSupervisor, fn ($q) => $q->whereIn('parking_id', $parkingIdsForSupervisor))
             ->orderByRaw('COALESCE(parking_id, 0)')
             ->orderBy('from_minutes')
             ->get()
@@ -25,11 +33,13 @@ class ParkingRateController extends Controller
                 'amount'       => $r->amount,
             ]);
 
-        $parkings = Parking::where('is_active', true)
-            ->orderBy('name')
-            ->get(['id', 'name', 'reference']);
+        $parkingsQuery = Parking::where('is_active', true)->orderBy('name');
+        if ($parkingIdsForSupervisor) {
+            $parkingsQuery->whereIn('id', $parkingIdsForSupervisor);
+        }
+        $parkings = $parkingsQuery->get(['id', 'name', 'reference']);
 
-        $role = auth()->user()->role;
+        $role = $user->role;
 
         return Inertia::render('ParkingRates/Index', [
             'rates'    => $rates,

@@ -53,10 +53,11 @@ const submit = () => {
 
                     <!-- Affectation des parkings -->
                     <div>
-                        <InputLabel value="Parkings affectés" class="text-sm font-semibold text-gray-700 mb-3" />
+                        <InputLabel value="Parking affecté" class="text-sm font-semibold text-gray-700 mb-3" />
                         <ParkingSelector
                             :parkings="parkings"
                             v-model="form.parking_ids"
+                            :singleSelect="true"
                             :error="form.errors.parking_ids"
                         />
                     </div>

@@ -50,7 +50,7 @@ class CaissierController extends Controller
             'emergency_contact'      => 'nullable|string|max:20',
             'emergency_relationship' => 'nullable|string|max:50',
             'emergency_name'         => 'nullable|string|max:255',
-            'parking_ids'            => 'nullable|array',
+            'parking_ids'            => 'nullable|array|max:1',
             'parking_ids.*'          => 'exists:parkings,id',
         ]);
 
@@ -120,6 +120,8 @@ class CaissierController extends Controller
             'emergency_contact'      => 'nullable|string|max:20',
             'emergency_relationship' => 'nullable|string|max:50',
             'emergency_name'         => 'nullable|string|max:255',
+            'parking_ids'            => 'nullable|array|max:1',
+            'parking_ids.*'          => 'exists:parkings,id',
         ]);
 
         $caissier->update($request->only([
@@ -159,8 +161,9 @@ class CaissierController extends Controller
 
     private function activeParkings(): array
     {
-        return Parking::where('is_active', true)
-            ->get(['id', 'name', 'reference', 'capacity'])
+        return auth()->user()->parkings()
+            ->where('is_active', true)
+            ->get(['parkings.id', 'parkings.name', 'parkings.reference', 'parkings.capacity'])
             ->map(fn ($p) => [
                 'id'              => $p->id,
                 'name'            => $p->name,

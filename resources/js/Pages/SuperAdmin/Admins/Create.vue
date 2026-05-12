@@ -77,8 +77,8 @@ function submit() {
 
                     <div class="pt-4 border-t border-gray-100 flex items-center justify-between gap-4">
                         <CancelButton :href="route('superadmin.admins.index')" />
-                        <PrimaryButton class="px-10 py-4 rounded-[2rem] font-black text-sm" :disabled="form.processing">
-                            Enregistrer l'Admin
+                        <PrimaryButton :disabled="form.processing">
+                            Enregistrer l'admin
                         </PrimaryButton>
                     </div>
                 </form>

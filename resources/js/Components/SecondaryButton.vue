@@ -10,7 +10,7 @@ defineProps({
 <template>
     <button
         :type="type"
-        class="inline-flex items-center justify-center gap-2  px-4 py-2
+        class="inline-flex items-center justify-center gap-2  px-6 py-3
                bg-[#787878] text-white
                border border-[#787878]
                rounded-xl text-xs font-semibold uppercase tracking-widest

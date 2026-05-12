@@ -4,6 +4,7 @@ import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import PreviousMap_ from 'postcss/lib/previous-map';
 import { computed, ref, onUnmounted } from 'vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
+import CancelButton from '@/Components/CancelButton.vue';
 
 const props = defineProps({
     plate:    { type: String, default: '' },
@@ -136,7 +137,7 @@ const formatDuration = (minutes) => {
                 <PrimaryButton type="submit" class="px-5 py-2.5 rounded-xl whitespace-nowrap">
                     Rechercher
                 </PrimaryButton>
-                <button
+                <CancelButton
                     v-if="search"
                     type="button"
                     @click="search = ''; doSearch()"
@@ -146,7 +147,7 @@ const formatDuration = (minutes) => {
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                     Réinitialiser
-                </button>
+                </CancelButton>
             </form>
         </div>
 

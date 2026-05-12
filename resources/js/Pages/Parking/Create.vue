@@ -22,7 +22,7 @@ const form = useForm({
     longitude: props.parking?.longitude ?? '',
     latitude: props.parking?.latitude ?? '',
     capacity: props.parking?.capacity ?? '',
-    price: props.parking?.price ?? '',
+    // price: props.parking?.price ?? '',
     image: null,
     rates: props.parking?.rates?.map(r => ({
         label:        r.label ?? '',
@@ -34,7 +34,6 @@ const form = useForm({
 
 const previewUrl = ref(props.parking?.image ? '/storage/' + props.parking.image : null);
 const geoStatus = ref('');
-const mapLinkInput = ref('');
 const { locationName, reverseGeocode } = useReverseGeocode();
 const { searchQuery, suggestions, showSuggestions, isSearching, onInput, selectSuggestion, clearSuggestions } = usePlacesAutocomplete();
 
@@ -59,22 +58,6 @@ const onImageChange = (e) => {
     }
 };
 
-const applyMapLink = () => {
-    const val = mapLinkInput.value.trim();
-    const atMatch = val.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/);
-    const qMatch = val.match(/[?&](?:q|ll)=(-?\d+\.?\d*),(-?\d+\.?\d*)/);
-    const plainMatch = val.match(/^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/);
-    const match = atMatch || qMatch || plainMatch;
-    if (match) {
-        form.latitude = match[1];
-        form.longitude = match[2];
-        geoStatus.value = 'Coordonnees extraites : ' + match[1] + ', ' + match[2];
-        reverseGeocode(match[1], match[2]);
-    } else {
-        geoStatus.value = 'Lien non reconnu. Essayez un lien Google Maps ou "lat, lng".';
-    }
-};
-
 const locateMe = () => {
     if (!navigator.geolocation) {
         geoStatus.value = 'La geolocalisation n\'est pas supportee par votre navigateur.';
@@ -96,6 +79,8 @@ const locateMe = () => {
 };
 
 // ---- Gestion des tarifs par intervalle ----
+const rateOverlapError = ref('');
+
 const addRate = () => {
     form.rates.push({ label: '', from_minutes: 0, to_minutes: '', amount: '' });
 };
@@ -104,7 +89,36 @@ const removeRate = (index) => {
     form.rates.splice(index, 1);
 };
 
+const validateRates = () => {
+    rateOverlapError.value = '';
+    for (let i = 0; i < form.rates.length; i++) {
+        const r = form.rates[i];
+        const from = parseInt(r.from_minutes);
+        const to = r.to_minutes !== '' && r.to_minutes !== null ? parseInt(r.to_minutes) : null;
+        if (to !== null && from >= to) {
+            rateOverlapError.value = `Intervalle ${i + 1} : "De" doit être strictement inférieur à "À".`;
+            return false;
+        }
+    }
+    const mapped = form.rates.map((r, i) => ({
+        idx: i + 1,
+        from: parseInt(r.from_minutes) || 0,
+        to: (r.to_minutes !== '' && r.to_minutes !== null) ? parseInt(r.to_minutes) : Infinity,
+    }));
+    for (let i = 0; i < mapped.length; i++) {
+        for (let j = i + 1; j < mapped.length; j++) {
+            const a = mapped[i], b = mapped[j];
+            if (a.from < b.to && b.from < a.to) {
+                rateOverlapError.value = `Les intervalles ${a.idx} et ${b.idx} se chevauchent.`;
+                return false;
+            }
+        }
+    }
+    return true;
+};
+
 const submit = () => {
+    if (!validateRates()) return;
     if (isEditing) {
         form.transform((data) => ({ ...data, _method: 'PUT' })).post(route('parkings.update', props.parking.id), {
             forceFormData: true,
@@ -161,7 +175,7 @@ const submit = () => {
                     </div>
 
                     <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 space-y-5">
-                        <h3 class="font-bold text-lg text-gray-800 border-b border-gray-50 pb-4 mb-2">Capacite &amp; Tarif de base</h3>
+                        <h3 class="font-bold text-lg text-gray-800 border-b border-gray-50 pb-4 mb-2">Capacite du parking</h3>
 
                         <div class="grid grid-cols-2 gap-4">
                             <div>
@@ -169,11 +183,11 @@ const submit = () => {
                                 <TextInput id="capacity" v-model="form.capacity" type="number" class="mt-1 block w-full" required />
                                 <InputError :message="form.errors.capacity" />
                             </div>
-                            <div>
+                            <!-- <div>
                                 <InputLabel for="price" value="Tarif de base (FCFA)" />
-                                <TextInput id="price" v-model="form.price" type="number" class="mt-1 block w-full" required />
+                                <TextInput id="price" v-model="form.price" type="number" class="mt-1 block w-full"/>
                                 <InputError :message="form.errors.price" />
-                            </div>
+                            </div> -->
                         </div>
                     </div>
 
@@ -261,6 +275,7 @@ const submit = () => {
                             </div>
                         </div>
                         <InputError :message="form.errors.rates" />
+        <InputError :message="rateOverlapError" />
                     </div>
                 </div>
 
