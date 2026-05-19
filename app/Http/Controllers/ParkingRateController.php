@@ -9,58 +9,78 @@ use Inertia\Inertia;
 
 class ParkingRateController extends Controller
 {
+    /**
+     * Liste des parkings avec accès à leur grille tarifaire.
+     */
     public function index()
     {
         $user = auth()->user();
 
-        $parkingIdsForSupervisor = null;
+        $query = Parking::where('is_active', true)->orderBy('name');
+
         if ($user->role === \App\Models\User::ROLE_SUPERVISOR) {
-            $parkingIdsForSupervisor = $user->parkings()->pluck('parkings.id');
+            $parkingIds = $user->parkings()->pluck('parkings.id');
+            $query->whereIn('id', $parkingIds);
         }
 
-        $rates = ParkingRate::with('parking')
-            ->when($parkingIdsForSupervisor, fn ($q) => $q->whereIn('parking_id', $parkingIdsForSupervisor))
-            ->orderByRaw('COALESCE(parking_id, 0)')
-            ->orderBy('from_minutes')
-            ->get()
-            ->map(fn ($r) => [
-                'id'           => $r->id,
-                'parking_id'   => $r->parking_id,
-                'parking_name' => $r->parking?->name,
-                'label'        => $r->label,
-                'from_minutes' => $r->from_minutes,
-                'to_minutes'   => $r->to_minutes,
-                'amount'       => $r->amount,
-            ]);
-
-        $parkingsQuery = Parking::where('is_active', true)->orderBy('name');
-        if ($parkingIdsForSupervisor) {
-            $parkingsQuery->whereIn('id', $parkingIdsForSupervisor);
-        }
-        $parkings = $parkingsQuery->get(['id', 'name', 'reference']);
-
-        $role = $user->role;
+        $parkings = $query->withCount('rates')->get(['id', 'name', 'reference', 'price']);
 
         return Inertia::render('ParkingRates/Index', [
-            'rates'    => $rates,
             'parkings' => $parkings,
-            'role'     => $role,
+            'role'     => $user->role,
+        ]);
+    }
+
+    /**
+     * Grille tarifaire d'un parking spécifique.
+     */
+    public function show(Parking $parking)
+    {
+        $user = auth()->user();
+
+        if ($user->role === \App\Models\User::ROLE_SUPERVISOR) {
+            $ids = $user->parkings()->pluck('parkings.id');
+            if (!$ids->contains($parking->id)) {
+                abort(403);
+            }
+        }
+
+        $rates = $parking->rates()
+            ->orderBy('from_time')
+            ->get()
+            ->map(fn ($r) => [
+                'id'        => $r->id,
+                'label'     => $r->label,
+                'from_time' => $r->from_time,
+                'to_time'   => $r->to_time,
+                'amount'    => $r->amount,
+            ]);
+
+        return Inertia::render('ParkingRates/Show', [
+            'parking' => [
+                'id'        => $parking->id,
+                'name'      => $parking->name,
+                'reference' => $parking->reference,
+                'price'     => $parking->price,
+            ],
+            'rates' => $rates,
+            'role'  => $user->role,
         ]);
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
-            'parking_id'   => 'nullable|exists:parkings,id',
-            'label'        => 'nullable|string|max:100',
-            'from_minutes' => 'required|integer|min:0',
-            'to_minutes'   => 'nullable|integer|min:1|gt:from_minutes',
-            'amount'       => 'required|numeric|min:0',
+            'parking_id' => 'required|exists:parkings,id',
+            'label'      => 'nullable|string|max:100',
+            'from_time'  => 'required|date_format:H:i',
+            'to_time'    => 'required|date_format:H:i|after:from_time',
+            'amount'     => 'required|numeric|min:0',
         ]);
 
-        if ($this->hasOverlap($data['from_minutes'], $data['to_minutes'] ?? null, $data['parking_id'] ?? null)) {
+        if ($this->hasOverlap($data['from_time'], $data['to_time'], (int) $data['parking_id'])) {
             return back()->withErrors([
-                'from_minutes' => 'Cet intervalle chevauche un tarif existant pour ce parking.',
+                'from_time' => 'Cet intervalle horaire chevauche un tarif existant pour ce parking.',
             ])->withInput();
         }
 
@@ -75,16 +95,15 @@ class ParkingRateController extends Controller
     public function update(Request $request, ParkingRate $parkingRate)
     {
         $data = $request->validate([
-            'parking_id'   => 'nullable|exists:parkings,id',
-            'label'        => 'nullable|string|max:100',
-            'from_minutes' => 'required|integer|min:0',
-            'to_minutes'   => 'nullable|integer|min:1|gt:from_minutes',
-            'amount'       => 'required|numeric|min:0',
+            'label'     => 'nullable|string|max:100',
+            'from_time' => 'required|date_format:H:i',
+            'to_time'   => 'required|date_format:H:i|after:from_time',
+            'amount'    => 'required|numeric|min:0',
         ]);
 
-        if ($this->hasOverlap($data['from_minutes'], $data['to_minutes'] ?? null, $data['parking_id'] ?? null, $parkingRate->id)) {
+        if ($this->hasOverlap($data['from_time'], $data['to_time'], (int) $parkingRate->parking_id, $parkingRate->id)) {
             return back()->withErrors([
-                'from_minutes' => 'Cet intervalle chevauche un tarif existant pour ce parking.',
+                'from_time' => 'Cet intervalle horaire chevauche un tarif existant pour ce parking.',
             ])->withInput();
         }
 
@@ -100,32 +119,19 @@ class ParkingRateController extends Controller
         return back()->with('success', 'Tarif supprimé.');
     }
 
-    private function hasOverlap(int $fromMinutes, ?int $toMinutes, ?int $parkingId, ?int $excludeId = null): bool
+    private function hasOverlap(string $fromTime, string $toTime, int $parkingId, ?int $excludeId = null): bool
     {
-        $query = ParkingRate::query();
-
-        if (is_null($parkingId)) {
-            $query->whereNull('parking_id');
-        } else {
-            $query->where('parking_id', $parkingId);
-        }
+        $query = ParkingRate::where('parking_id', $parkingId)
+            ->whereNotNull('from_time')
+            ->whereNotNull('to_time');
 
         if ($excludeId) {
             $query->where('id', '!=', $excludeId);
         }
 
-        // Deux intervalles [F1,T1] et [F2,T2] se chevauchent si :
-        // F1 <= T2 (ou T2 est NULL) ET F2 <= T1 (ou T1 est NULL)
-        $query->where(function ($q) use ($fromMinutes, $toMinutes) {
-            // F_existant <= T_nouveau (ou T_nouveau est null = infini)
-            if ($toMinutes !== null) {
-                $q->where('from_minutes', '<=', $toMinutes);
-            }
-            // ET F_nouveau <= T_existant (ou T_existant est null = infini)
-            $q->where(function ($q2) use ($fromMinutes) {
-                $q2->whereNull('to_minutes')
-                   ->orWhere('to_minutes', '>=', $fromMinutes);
-            });
+        $query->where(function ($q) use ($fromTime, $toTime) {
+            $q->where('from_time', '<', $toTime)
+              ->where('to_time', '>', $fromTime);
         });
 
         return $query->exists();

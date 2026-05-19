@@ -118,6 +118,7 @@ Route::middleware('auth')->group(function () {
         // Tarifs de stationnement (admin et supervisor)
         Route::prefix('parking-rates')->name('parking-rates.')->group(function () {
             Route::get('/', [ParkingRateController::class, 'index'])->name('index');
+            Route::get('/{parking}', [ParkingRateController::class, 'show'])->name('show');
             Route::post('/', [ParkingRateController::class, 'store'])->name('store');
             Route::put('/{parkingRate}', [ParkingRateController::class, 'update'])->name('update');
             Route::delete('/{parkingRate}', [ParkingRateController::class, 'destroy'])->name('destroy');

@@ -40,6 +40,12 @@ class HandleInertiaRequests extends Middleware
                     'role',
                 ]),
             ],
+            'flash' => [
+                'new_session_id'          => $request->session()->get('new_session_id'),
+                'checked_out_session_id'  => $request->session()->get('checked_out_session_id'),
+                'success'                 => $request->session()->get('success'),
+                'error'                   => $request->session()->get('error'),
+            ],
         ];
     }
 }

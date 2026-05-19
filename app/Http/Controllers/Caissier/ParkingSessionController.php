@@ -118,7 +118,7 @@ class ParkingSessionController extends Controller
 
         $sessions = $query->get()->map(function ($s) {
             $minutes = $s->duration_minutes;
-            $amount  = ParkingRate::calculateAmount($minutes, $s->parking_id);
+            $amount  = ParkingRate::calculateAmount(now()->format('H:i'), $s->parking_id);
 
             return [
                 'id'               => $s->id,
@@ -127,13 +127,14 @@ class ParkingSessionController extends Controller
                 'modele'           => $s->modele,
                 'parking_name'     => $s->parking?->name,
                 'parking_id'       => $s->parking_id,
+                'parking_price'    => $s->parking?->price,
                 'started_at'       => $s->started_at,
                 'duration_minutes' => $minutes,
                 'amount'           => $amount,
             ];
         });
 
-        $rates = ParkingRate::select('parking_id', 'from_minutes', 'to_minutes', 'amount')->get();
+        $rates = ParkingRate::select('parking_id', 'from_time', 'to_time', 'amount')->get();
 
         return Inertia::render('Caissier/ParkingSessions/Checkout', [
             'plate'    => $plate,
@@ -157,7 +158,7 @@ class ParkingSessionController extends Controller
 
         $endedAt = now();
         $minutes = (int) ceil($session->started_at->diffInMinutes($endedAt));
-        $amount  = ParkingRate::calculateAmount($minutes, $session->parking_id);
+        $amount  = ParkingRate::calculateAmount($endedAt->format('H:i'), $session->parking_id);
 
         $session->update([
             'status'    => 'released',
@@ -174,7 +175,9 @@ class ParkingSessionController extends Controller
             'caissier_id'   => auth()->id(),
         ]);
 
-        return redirect()->route('caissier.parking-sessions.receipt', $session->id);
+        return redirect()
+            ->route('caissier.checkout')
+            ->with('checked_out_session_id', $session->id);
     }
 
     /**
@@ -227,13 +230,31 @@ class ParkingSessionController extends Controller
     }
 
     /**
-     * Historique des sorties encaissées par ce caissier.
+     * Historique des entrées et sorties enregistrées par ce caissier.
      */
     public function history()
     {
-        $sessions = ParkingSession::with('parking')
+        $userId = auth()->id();
+
+        $entries = ParkingSession::with('parking')
+            ->where('created_by', $userId)
+            ->latest('started_at')
+            ->get()
+            ->map(function ($s) {
+                return [
+                    'id'            => $s->id,
+                    'license_plate' => $s->license_plate,
+                    'marque'        => $s->marque,
+                    'modele'        => $s->modele,
+                    'parking_name'  => $s->parking?->name,
+                    'started_at'    => $s->started_at,
+                    'status'        => $s->status,
+                ];
+            });
+
+        $exits = ParkingSession::with('parking')
             ->where('status', 'released')
-            ->where('closed_by', auth()->id())
+            ->where('closed_by', $userId)
             ->latest('ended_at')
             ->get()
             ->map(function ($s) {
@@ -251,7 +272,8 @@ class ParkingSessionController extends Controller
             });
 
         return Inertia::render('Caissier/ParkingSessions/History', [
-            'sessions' => $sessions,
+            'entries' => $entries,
+            'exits'   => $exits,
         ]);
     }
 }

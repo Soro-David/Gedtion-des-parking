@@ -64,7 +64,7 @@ function onlyDigits(field) {
                     <InputError :message="form.errors.phone" />
                 </div>
 
-                <div class="md:col-span-2">
+                <div>
                     <InputLabel for="address" value="Adresse" />
                     <TextInput id="address" v-model="form.address" type="text" class="mt-1 block w-full !bg-white" />
                     <InputError :message="form.errors.address" />

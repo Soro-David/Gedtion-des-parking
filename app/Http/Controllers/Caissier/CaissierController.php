@@ -82,6 +82,16 @@ class CaissierController extends Controller
             'nbAnnee'           => $nbAnnee,
             'dernierVersements' => $dernierVersements,
             'derniersSessions'  => $derniersSessions,
+            'parkings'          => $user->parkings()
+                ->where('parkings.is_active', true)
+                ->get(['parkings.id', 'parkings.name', 'parkings.reference', 'parkings.capacity'])
+                ->map(fn($p) => [
+                    'id'              => $p->id,
+                    'name'            => $p->name,
+                    'reference'       => $p->reference,
+                    'capacity'        => $p->capacity,
+                    'available_spots' => $p->available_spots,
+                ]),
         ]);
     }
 }

@@ -4,6 +4,7 @@ import { Head, Link, usePage } from '@inertiajs/vue3';
 import PrimaryLinkButton from '@/Components/PrimaryLinkButton.vue';
 import { computed } from 'vue';
 import { useAutoRefresh } from '@/Composables/useAutoRefresh.js';
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 
 useAutoRefresh();
 
@@ -48,7 +49,14 @@ const formatDate = (dt) => {
                 <h2 class="text-2xl font-bold text-gray-900 tracking-tight">Stationnements enregistrés</h2>
                 <p class="text-sm text-gray-500 mt-1">Liste des véhicules stationnés que vous avez enregistrés.</p>
             </div>
-            <PrimaryLinkButton :href="route('caissier.parking-sessions.create')" label="Enregistrer un stationnement" />
+            <!-- <PrimaryLinkButton :href="route('caissier.parking-sessions.create')" label="Enregistrer un stationnement" /> -->
+
+            <PrimaryLinkButton
+                :href="route('caissier.parking-sessions.create')" 
+                label="+ Enregistrer un stationnement"
+            >
+                <FontAwesomeIcon :icon="['fas', 'plus']" class="h-4 w-4" />
+            </PrimaryLinkButton>
         </div>
 
         <!-- Table -->

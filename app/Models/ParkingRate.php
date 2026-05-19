@@ -9,16 +9,14 @@ class ParkingRate extends Model
     protected $fillable = [
         'parking_id',
         'label',
-        'from_minutes',
-        'to_minutes',
+        'from_time',
+        'to_time',
         'amount',
         'created_by',
     ];
 
     protected $casts = [
-        'from_minutes' => 'integer',
-        'to_minutes'   => 'integer',
-        'amount'       => 'float',
+        'amount' => 'float',
     ];
 
     public function parking()
@@ -32,35 +30,30 @@ class ParkingRate extends Model
     }
 
     /**
-     * Calcule le montant pour une durée donnée (en minutes).
-     * Priorité : tarifs spécifiques au parking → tarifs globaux.
+     * Calcule le montant applicable à une heure donnée (format "H:i").
+     * Priorité : tarifs spécifiques au parking → tarif de base du parking.
      */
-    public static function calculateAmount(int $minutes, ?int $parkingId = null): ?float
+    public static function calculateAmount(string $time, ?int $parkingId = null): ?float
     {
-        // 1. Tarifs spécifiques au parking
         if ($parkingId) {
             $rate = static::where('parking_id', $parkingId)
-                ->where('from_minutes', '<=', $minutes)
-                ->where(function ($q) use ($minutes) {
-                    $q->whereNull('to_minutes')->orWhere('to_minutes', '>=', $minutes);
-                })
-                ->orderByDesc('from_minutes')
+                ->whereNotNull('from_time')
+                ->whereNotNull('to_time')
+                ->whereRaw('? BETWEEN from_time AND to_time', [$time])
+                ->orderBy('from_time')
                 ->first();
 
             if ($rate) {
                 return (float) $rate->amount;
             }
+
+            // Tarif de base du parking
+            $parking = \App\Models\Parking::find($parkingId);
+            if ($parking && $parking->price !== null) {
+                return (float) $parking->price;
+            }
         }
 
-        // 2. Tarifs globaux (parking_id = null)
-        $rate = static::whereNull('parking_id')
-            ->where('from_minutes', '<=', $minutes)
-            ->where(function ($q) use ($minutes) {
-                $q->whereNull('to_minutes')->orWhere('to_minutes', '>=', $minutes);
-            })
-            ->orderByDesc('from_minutes')
-            ->first();
-
-        return $rate ? (float) $rate->amount : null;
+        return null;
     }
 }

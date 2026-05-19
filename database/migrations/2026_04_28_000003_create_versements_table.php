@@ -15,11 +15,11 @@ return new class extends Migration
             $table->foreignId('agent_id')->constrained('users')->onDelete('cascade')->nullable();
             $table->foreignId('caissier_id')->nullable()->constrained('users')->onDelete('cascade');
             $table->foreignId('agent_id')->nullable()->change();
-            $table->decimal('collected_amount', 12, 2)->default(0); // montant encaissé depuis dernier versement
-            $table->decimal('previous_debt', 12, 2)->default(0);    // dette cumulée des versements précédents
-            $table->decimal('total_due', 12, 2)->default(0);        // collected_amount + previous_debt
-            $table->decimal('paid_amount', 12, 2)->default(0);      // montant effectivement versé
-            $table->decimal('remaining_debt', 12, 2)->default(0);   // total_due - paid_amount
+            $table->decimal('collected_amount', 12, 2)->default(0);
+            $table->decimal('previous_debt', 12, 2)->default(0);
+            $table->decimal('total_due', 12, 2)->default(0);
+            $table->decimal('paid_amount', 12, 2)->default(0);
+            $table->decimal('remaining_debt', 12, 2)->default(0);
             $table->text('note')->nullable();
             $table->timestamps();
         });

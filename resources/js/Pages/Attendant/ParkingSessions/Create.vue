@@ -5,12 +5,15 @@ import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import LicensePlateScanner from '@/Components/LicensePlateScanner.vue';
+import { useAutoRefresh } from '@/Composables/useAutoRefresh';
 import { Head, useForm, Link } from '@inertiajs/vue3';
 import { computed, watch, onMounted, ref } from 'vue';
 
 const props = defineProps({
     parkings: Array,
 });
+
+useAutoRefresh(3_000, ['parkings']);
 
 const STORAGE_KEY = 'attendant_selected_parking_id';
 
@@ -73,8 +76,23 @@ const changeParking = () => {
 };
 
 const submit = () => {
+    // Ouvrir un onglet vide immédiatement (synchrone = non bloqué par le navigateur)
+    const ticketWindow = window.open('', '_blank');
+
     form.post(route('attendant.parking-sessions.store'), {
         forceFormData: true,
+        onSuccess: (page) => {
+            const sessionId = page.props.flash?.new_session_id;
+            if (sessionId && ticketWindow) {
+                ticketWindow.location.href = route('attendant.parking-sessions.ticket', sessionId);
+            } else if (ticketWindow) {
+                ticketWindow.close();
+            }
+        },
+        onError: () => {
+            // Fermer l'onglet vide si le formulaire a des erreurs
+            if (ticketWindow) ticketWindow.close();
+        },
     });
 };
 

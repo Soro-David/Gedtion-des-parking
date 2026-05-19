@@ -91,7 +91,7 @@ function formatCFA(n) {
                 v-for="tab in [
                     { id: 'entries',  label: 'Entrées',  count: entries.length,  color: 'blue' },
                     { id: 'exits',    label: 'Sorties',  count: exits.length,    color: 'orange' },
-                    { id: 'parkings', label: 'Parkings', count: parkings.length, color: 'emerald' },
+                    // { id: 'parkings', label: 'Parkings', count: parkings.length, color: 'emerald' },
                 ]"
                 :key="tab.id"
                 @click="activeTab = tab.id"

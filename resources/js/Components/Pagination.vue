@@ -65,7 +65,7 @@ const pages = computed(() => {
                     @click="emit('page-change', p)"
                     class="w-7 h-7 rounded-lg text-xs font-bold transition-colors"
                     :class="p === currentPage
-                        ? 'bg-[#4A1725] text-white shadow-sm'
+                        ? 'bg-[#143f85] text-white shadow-sm'
                         : 'text-slate-600 hover:bg-slate-100'"
                 >
                     {{ p }}

@@ -18,7 +18,7 @@ class ParkingController extends Controller
         $user  = auth()->user();
         $query = Parking::with([
                 'creator',
-                'rates' => fn ($q) => $q->orderBy('from_minutes'),
+                'rates' => fn ($q) => $q->orderBy('from_time'),
             ])
             ->withCount('activeSessions')
             ->latest();
@@ -47,33 +47,27 @@ class ParkingController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'                 => 'required|string|max:255',
-            'address'              => 'required|string',
-            'longitude'            => 'nullable|numeric|between:-180,180',
-            'latitude'             => 'nullable|numeric|between:-90,90',
-            'capacity'             => 'required|integer|min:1',
-            'image'                => 'nullable|image|max:2048',
-            'rates'                => 'nullable|array',
-            'rates.*.label'        => 'nullable|string|max:100',
-            'rates.*.from_minutes' => 'required|integer|min:0',
-            'rates.*.to_minutes'   => 'nullable|integer|min:1',
-            'rates.*.amount'       => 'required|numeric|min:0',
+            'name'              => 'required|string|max:255',
+            'address'           => 'required|string',
+            'longitude'         => 'nullable|numeric|between:-180,180',
+            'latitude'          => 'nullable|numeric|between:-90,90',
+            'capacity'          => 'required|integer|min:1',
+            'price'             => 'nullable|numeric|min:0',
+            'image'             => 'nullable|image|max:2048',
+            'rates'             => 'nullable|array',
+            'rates.*.label'     => 'nullable|string|max:100',
+            'rates.*.from_time' => 'required|date_format:H:i',
+            'rates.*.to_time'   => 'required|date_format:H:i|after:rates.*.from_time',
+            'rates.*.amount'    => 'required|numeric|min:0',
         ]);
 
         $rates = $validated['rates'] ?? [];
         unset($validated['rates']);
 
-        // Vérification des chevauchements d'intervalles
+        // Vérification des chevauchements d'intervalles horaires
         for ($i = 0; $i < count($rates); $i++) {
-            $aFrom = (int) $rates[$i]['from_minutes'];
-            $aTo   = (isset($rates[$i]['to_minutes']) && $rates[$i]['to_minutes'] !== '') ? (int) $rates[$i]['to_minutes'] : PHP_INT_MAX;
-            if ($aFrom >= $aTo) {
-                return back()->withErrors(['rates' => 'Intervalle ' . ($i + 1) . ' : "De" doit être strictement inférieur à "À".'  ])->withInput();
-            }
             for ($j = $i + 1; $j < count($rates); $j++) {
-                $bFrom = (int) $rates[$j]['from_minutes'];
-                $bTo   = (isset($rates[$j]['to_minutes']) && $rates[$j]['to_minutes'] !== '') ? (int) $rates[$j]['to_minutes'] : PHP_INT_MAX;
-                if ($aFrom < $bTo && $bFrom < $aTo) {
+                if ($rates[$i]['from_time'] < $rates[$j]['to_time'] && $rates[$j]['from_time'] < $rates[$i]['to_time']) {
                     return back()->withErrors(['rates' => 'Les intervalles ' . ($i + 1) . ' et ' . ($j + 1) . ' se chevauchent.'])->withInput();
                 }
             }
@@ -91,11 +85,11 @@ class ParkingController extends Controller
 
         foreach ($rates as $rate) {
             $parking->rates()->create([
-                'label'        => $rate['label'] ?? null,
-                'from_minutes' => (int) $rate['from_minutes'],
-                'to_minutes'   => isset($rate['to_minutes']) && $rate['to_minutes'] !== '' ? (int) $rate['to_minutes'] : null,
-                'amount'       => (float) $rate['amount'],
-                'created_by'   => auth()->id(),
+                'label'      => $rate['label'] ?? null,
+                'from_time'  => $rate['from_time'],
+                'to_time'    => $rate['to_time'],
+                'amount'     => (float) $rate['amount'],
+                'created_by' => auth()->id(),
             ]);
         }
 
@@ -107,7 +101,7 @@ class ParkingController extends Controller
      */
     public function edit(Parking $parking)
     {
-        $parking->load(['rates' => fn ($q) => $q->orderBy('from_minutes')]);
+        $parking->load(['rates' => fn ($q) => $q->orderBy('from_time')]);
 
         return Inertia::render('Parking/Create', [
             'parking' => $parking,
@@ -120,33 +114,27 @@ class ParkingController extends Controller
     public function update(Request $request, Parking $parking)
     {
         $validated = $request->validate([
-            'name'                 => 'required|string|max:255',
-            'address'              => 'required|string',
-            'longitude'            => 'nullable|numeric|between:-180,180',
-            'latitude'             => 'nullable|numeric|between:-90,90',
-            'capacity'             => 'required|integer|min:1',
-            'image'                => 'nullable|image|max:2048',
-            'rates'                => 'nullable|array',
-            'rates.*.label'        => 'nullable|string|max:100',
-            'rates.*.from_minutes' => 'required|integer|min:0',
-            'rates.*.to_minutes'   => 'nullable|integer|min:1',
-            'rates.*.amount'       => 'required|numeric|min:0',
+            'name'              => 'required|string|max:255',
+            'address'           => 'required|string',
+            'longitude'         => 'nullable|numeric|between:-180,180',
+            'latitude'          => 'nullable|numeric|between:-90,90',
+            'capacity'          => 'required|integer|min:1',
+            'price'             => 'nullable|numeric|min:0',
+            'image'             => 'nullable|image|max:2048',
+            'rates'             => 'nullable|array',
+            'rates.*.label'     => 'nullable|string|max:100',
+            'rates.*.from_time' => 'required|date_format:H:i',
+            'rates.*.to_time'   => 'required|date_format:H:i|after:rates.*.from_time',
+            'rates.*.amount'    => 'required|numeric|min:0',
         ]);
 
         $rates = $validated['rates'] ?? [];
         unset($validated['rates']);
 
-        // Vérification des chevauchements d'intervalles
+        // Vérification des chevauchements d'intervalles horaires
         for ($i = 0; $i < count($rates); $i++) {
-            $aFrom = (int) $rates[$i]['from_minutes'];
-            $aTo   = (isset($rates[$i]['to_minutes']) && $rates[$i]['to_minutes'] !== '') ? (int) $rates[$i]['to_minutes'] : PHP_INT_MAX;
-            if ($aFrom >= $aTo) {
-                return back()->withErrors(['rates' => 'Intervalle ' . ($i + 1) . ' : "De" doit être strictement inférieur à "À".'])->withInput();
-            }
             for ($j = $i + 1; $j < count($rates); $j++) {
-                $bFrom = (int) $rates[$j]['from_minutes'];
-                $bTo   = (isset($rates[$j]['to_minutes']) && $rates[$j]['to_minutes'] !== '') ? (int) $rates[$j]['to_minutes'] : PHP_INT_MAX;
-                if ($aFrom < $bTo && $bFrom < $aTo) {
+                if ($rates[$i]['from_time'] < $rates[$j]['to_time'] && $rates[$j]['from_time'] < $rates[$i]['to_time']) {
                     return back()->withErrors(['rates' => 'Les intervalles ' . ($i + 1) . ' et ' . ($j + 1) . ' se chevauchent.'])->withInput();
                 }
             }
@@ -165,11 +153,11 @@ class ParkingController extends Controller
         $parking->rates()->delete();
         foreach ($rates as $rate) {
             $parking->rates()->create([
-                'label'        => $rate['label'] ?? null,
-                'from_minutes' => (int) $rate['from_minutes'],
-                'to_minutes'   => isset($rate['to_minutes']) && $rate['to_minutes'] !== '' ? (int) $rate['to_minutes'] : null,
-                'amount'       => (float) $rate['amount'],
-                'created_by'   => auth()->id(),
+                'label'      => $rate['label'] ?? null,
+                'from_time'  => $rate['from_time'],
+                'to_time'    => $rate['to_time'],
+                'amount'     => (float) $rate['amount'],
+                'created_by' => auth()->id(),
             ]);
         }
 

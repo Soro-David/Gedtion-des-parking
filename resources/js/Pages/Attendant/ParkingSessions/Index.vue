@@ -49,7 +49,12 @@ const formatDate = (dt) => {
                 <h2 class="text-2xl font-bold text-gray-900 tracking-tight">Stationnements enregistrés</h2>
                 <p class="text-sm text-gray-500 mt-1">Liste des véhicules stationnés que vous avez enregistrés.</p>
             </div>
-            <PrimaryLinkButton :href="route('attendant.parking-sessions.create')" label="Enregistrer un stationnement" />
+            <PrimaryLinkButton
+                :href="route('attendant.parking-sessions.create')"
+                label="+ Enregistrer un stationnement"
+            >
+               
+            </PrimaryLinkButton>
         </div>
 
         <!-- Table -->

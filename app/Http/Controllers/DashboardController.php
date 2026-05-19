@@ -88,6 +88,18 @@ class DashboardController extends Controller
                         'amount'        => $s->amount,
                     ]);
 
+                // Parkings affectés à cet agent (pour le modal d'ajout de stationnement)
+                $parkings = $user->parkings()
+                    ->where('parkings.is_active', true)
+                    ->get(['parkings.id', 'parkings.name', 'parkings.reference', 'parkings.capacity'])
+                    ->map(fn($p) => [
+                        'id'              => $p->id,
+                        'name'            => $p->name,
+                        'reference'       => $p->reference,
+                        'capacity'        => $p->capacity,
+                        'available_spots' => $p->available_spots,
+                    ]);
+
                 $stats = [
                     'drivers'          => $myDrivers->count(),
                     'today_drivers'    => (clone $myDrivers)->whereDate('created_at', today())->count(),
@@ -99,6 +111,7 @@ class DashboardController extends Controller
                     'nbMois'           => $nbMois,
                     'nbAnnee'          => $nbAnnee,
                     'dernieresSessions'=> $dernieresSessions,
+                    'parkings'         => $parkings,
                 ];
                 break;
 

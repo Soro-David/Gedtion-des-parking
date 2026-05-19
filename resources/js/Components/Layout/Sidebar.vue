@@ -72,7 +72,7 @@ const menuItems = computed(() => {
                 { name: 'Stationnements', route: 'attendant.parking-sessions.index', icon: 'parking' },
                 { name: 'Enregistrer sortie', route: 'attendant.checkout', icon: 'log-out' },
                 // { name: 'Scanner QR', route: 'dashboard', icon: 'maximize' },
-                { name: 'Historique sortie', route: 'attendant.history', icon: 'clock' },
+                { name: 'Historique', route: 'attendant.history', icon: 'clock' },
                 { name: 'Historique versements', route: 'attendant.reversements.index', icon: 'banknote' },
             ];
 
@@ -81,7 +81,7 @@ const menuItems = computed(() => {
                 ...common,
                 { name: 'Stationnements', route: 'caissier.parking-sessions.index', icon: 'parking' },
                 { name: 'Enregistrer sortie', route: 'caissier.checkout', icon: 'log-out' },
-                { name: 'Historique caisse', route: 'caissier.history', icon: 'clock' },
+                { name: 'Historique', route: 'caissier.history', icon: 'clock' },
                 { name: 'Historique versements', route: 'caissier.versements.index', icon: 'banknote' },
                 { name: 'Rapport', route: 'caissier.rapport.index', icon: 'bar-chart' },
             ];

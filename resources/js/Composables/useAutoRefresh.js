@@ -7,7 +7,7 @@ import { router } from '@inertiajs/vue3';
  * @param {number} intervalMs   Intervalle en millisecondes (défaut : 30 000 ms)
  * @param {string[]} only       Props à recharger (optionnel, recharge tout si vide)
  */
-export function useAutoRefresh(intervalMs = 30_000, only = []) {
+export function useAutoRefresh(intervalMs = 3_000, only = []) {
     let timer = null;
 
     const refresh = () => {

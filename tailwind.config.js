@@ -15,6 +15,15 @@ export default {
             fontFamily: {
                 sans: ['Figtree', ...defaultTheme.fontFamily.sans],
             },
+            keyframes: {
+                'scan-line': {
+                    '0%, 100%': { top: '0%', opacity: '1' },
+                    '50%':      { top: '100%', opacity: '0.6' },
+                },
+            },
+            animation: {
+                'scan-line': 'scan-line 2s ease-in-out infinite',
+            },
         },
     },
 

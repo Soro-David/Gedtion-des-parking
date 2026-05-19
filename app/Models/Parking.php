@@ -63,7 +63,7 @@ class Parking extends Model
      */
     public function rates()
     {
-        return $this->hasMany(ParkingRate::class)->orderBy('from_minutes');
+        return $this->hasMany(ParkingRate::class)->orderBy('from_time');
     }
 
     /**

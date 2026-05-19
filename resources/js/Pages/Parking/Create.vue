@@ -22,13 +22,13 @@ const form = useForm({
     longitude: props.parking?.longitude ?? '',
     latitude: props.parking?.latitude ?? '',
     capacity: props.parking?.capacity ?? '',
-    // price: props.parking?.price ?? '',
+    price: props.parking?.price ?? '',
     image: null,
     rates: props.parking?.rates?.map(r => ({
-        label:        r.label ?? '',
-        from_minutes: r.from_minutes,
-        to_minutes:   r.to_minutes ?? '',
-        amount:       r.amount,
+        label:     r.label ?? '',
+        from_time: r.from_time ? r.from_time.substring(0, 5) : '',
+        to_time:   r.to_time  ? r.to_time.substring(0, 5)   : '',
+        amount:    r.amount,
     })) ?? [],
 });
 
@@ -82,7 +82,7 @@ const locateMe = () => {
 const rateOverlapError = ref('');
 
 const addRate = () => {
-    form.rates.push({ label: '', from_minutes: 0, to_minutes: '', amount: '' });
+    form.rates.unshift({ label: '', from_time: '', to_time: '', amount: '' });
 };
 
 const removeRate = (index) => {
@@ -93,23 +93,20 @@ const validateRates = () => {
     rateOverlapError.value = '';
     for (let i = 0; i < form.rates.length; i++) {
         const r = form.rates[i];
-        const from = parseInt(r.from_minutes);
-        const to = r.to_minutes !== '' && r.to_minutes !== null ? parseInt(r.to_minutes) : null;
-        if (to !== null && from >= to) {
-            rateOverlapError.value = `Intervalle ${i + 1} : "De" doit être strictement inférieur à "À".`;
+        if (!r.from_time || !r.to_time) {
+            rateOverlapError.value = `Intervalle ${i + 1} : les heures de début et de fin sont requises.`;
+            return false;
+        }
+        if (r.from_time >= r.to_time) {
+            rateOverlapError.value = `Intervalle ${i + 1} : l'heure de début doit être strictement inférieure à l'heure de fin.`;
             return false;
         }
     }
-    const mapped = form.rates.map((r, i) => ({
-        idx: i + 1,
-        from: parseInt(r.from_minutes) || 0,
-        to: (r.to_minutes !== '' && r.to_minutes !== null) ? parseInt(r.to_minutes) : Infinity,
-    }));
-    for (let i = 0; i < mapped.length; i++) {
-        for (let j = i + 1; j < mapped.length; j++) {
-            const a = mapped[i], b = mapped[j];
-            if (a.from < b.to && b.from < a.to) {
-                rateOverlapError.value = `Les intervalles ${a.idx} et ${b.idx} se chevauchent.`;
+    for (let i = 0; i < form.rates.length; i++) {
+        for (let j = i + 1; j < form.rates.length; j++) {
+            const a = form.rates[i], b = form.rates[j];
+            if (a.from_time < b.to_time && b.from_time < a.to_time) {
+                rateOverlapError.value = `Les intervalles ${i + 1} et ${j + 1} se chevauchent.`;
                 return false;
             }
         }
@@ -183,11 +180,12 @@ const submit = () => {
                                 <TextInput id="capacity" v-model="form.capacity" type="number" class="mt-1 block w-full" required />
                                 <InputError :message="form.errors.capacity" />
                             </div>
-                            <!-- <div>
+                            <div>
                                 <InputLabel for="price" value="Tarif de base (FCFA)" />
-                                <TextInput id="price" v-model="form.price" type="number" class="mt-1 block w-full"/>
+                                <TextInput id="price" v-model="form.price" type="number" min="0" step="50" class="mt-1 block w-full" placeholder="ex: 200" />
                                 <InputError :message="form.errors.price" />
-                            </div> -->
+                                <p class="text-xs text-gray-400 mt-1">Appliqué hors créneaux horaires.</p>
+                            </div>
                         </div>
                     </div>
 
@@ -229,7 +227,7 @@ const submit = () => {
                                     :id="'rate-label-' + index"
                                     v-model="rate.label"
                                     type="text"
-                                    placeholder="ex: 1ère heure, Au-delà de 2h..."
+                                    placeholder="ex: Heure de pointe..."
                                     class="mt-1 block w-full text-sm"
                                 />
                                 <InputError :message="form.errors['rates.' + index + '.label']" />
@@ -237,28 +235,26 @@ const submit = () => {
 
                             <div class="grid grid-cols-3 gap-3">
                                 <div>
-                                    <InputLabel :for="'rate-from-' + index" value="De (minutes)" />
+                                    <InputLabel :for="'rate-from-' + index" value="Heure début" />
                                     <TextInput
                                         :id="'rate-from-' + index"
-                                        v-model="rate.from_minutes"
-                                        type="number"
-                                        min="0"
+                                        v-model="rate.from_time"
+                                        type="time"
                                         class="mt-1 block w-full text-sm"
                                         required
                                     />
-                                    <InputError :message="form.errors['rates.' + index + '.from_minutes']" />
+                                    <InputError :message="form.errors['rates.' + index + '.from_time']" />
                                 </div>
                                 <div>
-                                    <InputLabel :for="'rate-to-' + index" value="À (minutes)" />
+                                    <InputLabel :for="'rate-to-' + index" value="Heure fin" />
                                     <TextInput
                                         :id="'rate-to-' + index"
-                                        v-model="rate.to_minutes"
-                                        type="number"
-                                        min="1"
-                                        placeholder="Illimité"
+                                        v-model="rate.to_time"
+                                        type="time"
                                         class="mt-1 block w-full text-sm"
+                                        required
                                     />
-                                    <InputError :message="form.errors['rates.' + index + '.to_minutes']" />
+                                    <InputError :message="form.errors['rates.' + index + '.to_time']" />
                                 </div>
                                 <div>
                                     <InputLabel :for="'rate-amount-' + index" value="Montant (FCFA)" />

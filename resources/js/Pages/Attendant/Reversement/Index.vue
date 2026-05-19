@@ -57,13 +57,13 @@ const confirmed = computed(() => props.reversements.filter(r => r.status === 'co
                     <h1 class="text-2xl font-black text-slate-900">Reversements</h1>
                     <p class="text-sm text-slate-500 mt-1">Gérez vos reversements de fonds vers l'admin ou le superviseur.</p>
                 </div>
-                <button
+                <!-- <button
                     v-if="pendingAmount > 0"
                     @click="showForm = !showForm"
                     class="px-5 py-2.5 bg-[#4A1725] text-white rounded-xl font-bold text-sm hover:bg-[#3a1020] transition-colors"
                 >
                     {{ showForm ? 'Annuler' : 'Effectuer un reversement' }}
-                </button>
+                </button> -->
             </div>
 
             <!-- Flash success -->
