@@ -53,7 +53,24 @@ const tickLive = () => {
 
 const modalOpen = ref(false);
 
+const showBlockedParkingPopup = (parkingName = selected.value?.parking_name) => {
+    Swal.fire({
+        icon: 'warning',
+        title: 'Parking bloqué',
+        text: parkingName
+            ? `Le parking ${parkingName} est actuellement bloqué. Aucune action n'est autorisée.`
+            : 'Ce parking est actuellement bloqué. Aucune action n\'est autorisée.',
+        confirmButtonText: 'Compris',
+        confirmButtonColor: '#dc2626',
+    });
+};
+
 const openModal = (session) => {
+    if (!session.parking_is_active) {
+        showBlockedParkingPopup(session.parking_name);
+        return;
+    }
+
     clearInterval(timer);
     selected.value = session;
     checkoutForm.session_id = session.id;
@@ -79,6 +96,11 @@ watch(filtered, (newFiltered) => {
 }, { immediate: true });
 
 const confirmCheckout = () => {
+    if (selected.value && !selected.value.parking_is_active) {
+        showBlockedParkingPopup(selected.value.parking_name);
+        return;
+    }
+
     const plate = selected.value?.license_plate ?? '';
 
     // Ouvrir un onglet vide immédiatement (synchrone = non bloqué par le navigateur)
@@ -104,8 +126,14 @@ const confirmCheckout = () => {
                 timerProgressBar: true,
             });
         },
-        onError: () => {
+        onError: (errors) => {
             if (receiptWindow) receiptWindow.close();
+
+            if (errors.session_id) {
+                showBlockedParkingPopup(selected.value?.parking_name);
+                return;
+            }
+
             Swal.fire({
                 icon: 'error',
                 title: 'Erreur',

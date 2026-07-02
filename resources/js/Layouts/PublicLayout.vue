@@ -235,7 +235,11 @@ onUnmounted(() => window.removeEventListener('scroll', handleScroll));
                 </div>
 
                 <div class="border-t border-white/10 mt-12 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3">
-                    <p class="text-xs text-white/30">&copy; {{ new Date().getFullYear() }} Gespark. Tous droits réservés.</p>
+                    <div class="flex flex-col sm:flex-row items-center gap-3">
+                        <p class="text-xs text-white/30">&copy; {{ new Date().getFullYear() }} Gespark. Tous droits réservés.</p>
+                        <span class="hidden sm:inline text-white/20">|</span>
+                        <Link :href="route('public.politique')" class="text-xs text-white/40 hover:text-sky-300 transition-colors">Politique de confidentialité</Link>
+                    </div>
                     <p class="text-xs font-bold text-white/30 uppercase tracking-widest">Développé par KKS-TECHNOLOGIES</p>
                 </div>
             </div>

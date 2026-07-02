@@ -1,0 +1,865 @@
+{
+	"info": {
+		"_postman_id": "8b9e6f3b-fa2c-47bc-98de-44c125df9db8",
+		"name": "Parking App API - Attendant & Caissier",
+		"description": "Collection pour tester les endpoints de l'application de gestion de parking pour les rôles Agent (Attendant) et Caissier.\n\n### Authentification\n1. Connectez-vous avec `/api/auth/login` (Agent ou Caissier).\n2. Copiez le token retourné.\n3. Dans Postman, configurez l'onglet **Authorization** de la collection ou du dossier sur **Bearer Token** et utilisez la variable `{{token}}` ou collez directement le token.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Connexion (Login)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.token) {",
+									"    pm.environment.set(\"token\", jsonData.token);",
+									"    pm.globals.set(\"token\", jsonData.token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"login\": \"agent@example.com\",\n    \"password\": \"password123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						},
+						"description": "Permet à l'agent ou au caissier de se connecter avec son email/téléphone et mot de passe."
+					},
+					"response": []
+				},
+				{
+					"name": "Profil Utilisateur (Me)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/auth/me",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"me"
+							]
+						},
+						"description": "Récupère les informations de l'utilisateur actuellement connecté."
+					},
+					"response": []
+				},
+				{
+					"name": "Déconnexion (Logout)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/auth/logout",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"logout"
+							]
+						},
+						"description": "Révoque le token d'accès courant."
+					},
+					"response": []
+				},
+				{
+					"name": "Mot de passe oublié (Forgot Password)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"agent@example.com\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/password/forgot",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"password",
+								"forgot"
+							]
+						},
+						"description": "Demande un code OTP de réinitialisation de mot de passe envoyé par email."
+					},
+					"response": []
+				},
+				{
+					"name": "Réinitialiser le mot de passe (Reset Password)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"token\": \"votre_token_recu_ici\",\n    \"email\": \"agent@example.com\",\n    \"password\": \"nouveauPassword123\",\n    \"password_confirmation\": \"nouveauPassword123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/password/reset",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"password",
+								"reset"
+							]
+						},
+						"description": "Réinitialise le mot de passe en utilisant le jeton reçu par email."
+					},
+					"response": []
+				},
+				{
+					"name": "Renvoyer l'e-mail de vérification (Resend Verification)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"agent@example.com\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/email/verify",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"email",
+								"verify"
+							]
+						},
+						"description": "Renvoie un e-mail avec le lien de vérification d'adresse de messagerie."
+					},
+					"response": []
+				},
+				{
+					"name": "Vérifier l'e-mail (Verify Email)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/auth/email/verify/1/hash_de_verification?signature=temp_signature",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"email",
+								"verify",
+								"1",
+								"hash_de_verification"
+							],
+							"query": [
+								{
+									"key": "signature",
+									"value": "temp_signature",
+									"description": "Signature temporaire générée automatiquement par Laravel"
+								}
+							]
+						},
+						"description": "Vérifie l'adresse e-mail de l'utilisateur."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Agent (Attendant)",
+			"item": [
+				{
+					"name": "Reconnaissance de plaque (OCR)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "image",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/attendant/ocr/license-plate",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"attendant",
+								"ocr",
+								"license-plate"
+							]
+						},
+						"description": "Permet à l'agent d'envoyer l'image capturée d'un véhicule pour en extraire textuellement la plaque d'immatriculation."
+					},
+					"response": []
+				},
+				{
+					"name": "Enregistrer Entrée (Check-in)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "parking_id",
+									"value": "1",
+									"type": "text"
+								},
+								{
+									"key": "license_plate",
+									"value": "AB-123-CD",
+									"type": "text"
+								},
+								{
+									"key": "marque",
+									"value": "Toyota",
+									"type": "text"
+								},
+								{
+									"key": "modele",
+									"value": "Corolla",
+									"type": "text"
+								},
+								{
+									"key": "vehicle_image",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/attendant/parking-sessions",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"attendant",
+								"parking-sessions"
+							]
+						},
+						"description": "Enregistre l'entrée d'un véhicule dans le parking affecté."
+					},
+					"response": []
+				},
+				{
+					"name": "Enregistrer Sortie (Check-out)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"session_id\": 1\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/attendant/parking-sessions/checkout",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"attendant",
+								"parking-sessions",
+								"checkout"
+							]
+						},
+						"description": "Clôture la session et calcule le montant à payer."
+					},
+					"response": []
+				},
+				{
+					"name": "Historique des Entrées",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/attendant/parking-sessions/history/entries",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"attendant",
+								"parking-sessions",
+								"history",
+								"entries"
+							]
+						},
+						"description": "Retourne l'historique complet des entrées créées par cet agent."
+					},
+					"response": []
+				},
+				{
+					"name": "Historique des Sorties",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/attendant/parking-sessions/history/exits",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"attendant",
+								"parking-sessions",
+								"history",
+								"exits"
+							]
+						},
+						"description": "Retourne l'historique complet des sorties validées et encaissées par cet agent."
+					},
+					"response": []
+				},
+				{
+					"name": "Statistiques Financières (Encaisse, Versé, Dette)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/attendant/stats",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"attendant",
+								"stats"
+							]
+						},
+						"description": "Récupère les montants cumulés et la dette restante de l'agent connecté."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Caissier (Cashier)",
+			"item": [
+				{
+					"name": "Reconnaissance de plaque (OCR)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "image",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/caissier/ocr/license-plate",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"caissier",
+								"ocr",
+								"license-plate"
+							]
+						},
+						"description": "Permet au caissier d'envoyer l'image capturée d'un véhicule pour en extraire textuellement la plaque d'immatriculation."
+					},
+					"response": []
+				},
+				{
+					"name": "Enregistrer Entrée (Check-in)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "parking_id",
+									"value": "1",
+									"type": "text"
+								},
+								{
+									"key": "license_plate",
+									"value": "EZ-987-XX",
+									"type": "text"
+								},
+								{
+									"key": "marque",
+									"value": "Peugeot",
+									"type": "text"
+								},
+								{
+									"key": "modele",
+									"value": "208",
+									"type": "text"
+								},
+								{
+									"key": "vehicle_image",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/caissier/parking-sessions",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"caissier",
+								"parking-sessions"
+							]
+						},
+						"description": "Enregistre l'entrée d'un véhicule dans le parking affecté au caissier."
+					},
+					"response": []
+				},
+				{
+					"name": "Enregistrer Sortie (Check-out)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"session_id\": 2\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/caissier/parking-sessions/checkout",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"caissier",
+								"parking-sessions",
+								"checkout"
+							]
+						},
+						"description": "Clôture la session et calcule le montant à payer."
+					},
+					"response": []
+				},
+				{
+					"name": "Historique des Entrées",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/caissier/parking-sessions/history/entries",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"caissier",
+								"parking-sessions",
+								"history",
+								"entries"
+							]
+						},
+						"description": "Retourne l'historique complet des entrées créées par ce caissier."
+					},
+					"response": []
+				},
+				{
+					"name": "Historique des Sorties",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/caissier/parking-sessions/history/exits",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"caissier",
+								"parking-sessions",
+								"history",
+								"exits"
+							]
+						},
+						"description": "Retourne l'historique complet des sorties validées et encaissées par ce caissier."
+					},
+					"response": []
+				},
+				{
+					"name": "Statistiques Financières (Encaisse, Versé, Dette)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/caissier/stats",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"caissier",
+								"stats"
+							]
+						},
+						"description": "Récupère les montants cumulés et la dette restante du caissier connecté."
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8081",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "your_bearer_token_here",
+			"type": "string"
+		}
+	]
+}

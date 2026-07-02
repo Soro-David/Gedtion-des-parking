@@ -17,7 +17,7 @@ const user = computed(() => page.props.auth.user);
 const role = computed(() => user.value.role);
 const stats = computed(() => page.props.stats ?? {});
 
-useAutoRefresh();
+useAutoRefresh();  
 
 const roleDisplayName = computed(() => ROLE_LABELS[role.value] || 'Utilisateur');
 </script>

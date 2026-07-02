@@ -13,6 +13,8 @@ const props = defineProps({
 
 const flash = computed(() => usePage().props.flash ?? {});
 
+const normalizeTime = (value) => value ? value.substring(0, 5) : '';
+
 // ---------- Création ----------
 const form = useForm({
     parking_id: props.parking.id,
@@ -55,19 +57,22 @@ const editForm = useForm({
 const startEdit = (rate) => {
     editing.value      = rate;
     editForm.label     = rate.label ?? '';
-    editForm.from_time = rate.from_time ?? '';
-    editForm.to_time   = rate.to_time ?? '';
+    editForm.from_time = normalizeTime(rate.from_time);
+    editForm.to_time   = normalizeTime(rate.to_time);
     editForm.amount    = rate.amount;
 };
 const cancelEdit = () => { editing.value = null; };
 const saveEdit = () => {
+    editForm.from_time = normalizeTime(editForm.from_time);
+    editForm.to_time   = normalizeTime(editForm.to_time);
+
     editForm.put(route('parking-rates.update', editing.value.id), {
         onSuccess: () => { editing.value = null; },
     });
 };
 
 // ---------- Helpers ----------
-const formatTime = (t) => t ? t.substring(0, 5) : '—';
+const formatTime = (t) => normalizeTime(t) || '—';
 
 // ---------- Pagination créneaux ----------
 const RATE_PER_PAGE  = 4;

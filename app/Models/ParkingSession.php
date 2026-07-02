@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class ParkingSession extends Model
@@ -16,6 +17,7 @@ class ParkingSession extends Model
         'started_at',
         'ended_at',
         'amount',
+        'payment_method',
         'closed_by',
         'created_by',
         'reversement_id',
@@ -51,6 +53,26 @@ class ParkingSession extends Model
     public function versement()
     {
         return $this->belongsTo(Versement::class, 'versement_id');
+    }
+
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query
+            ->where('status', 'occupied')
+            ->whereNull('ended_at');
+    }
+
+    public static function normalizeLicensePlate(?string $licensePlate): string
+    {
+        return strtoupper(trim((string) $licensePlate));
+    }
+
+    public static function hasActiveForLicensePlate(string $licensePlate): bool
+    {
+        return static::query()
+            ->active()
+            ->where('license_plate', static::normalizeLicensePlate($licensePlate))
+            ->exists();
     }
 
     /**

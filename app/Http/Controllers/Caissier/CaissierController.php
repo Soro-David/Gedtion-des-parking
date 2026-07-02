@@ -83,13 +83,13 @@ class CaissierController extends Controller
             'dernierVersements' => $dernierVersements,
             'derniersSessions'  => $derniersSessions,
             'parkings'          => $user->parkings()
-                ->where('parkings.is_active', true)
-                ->get(['parkings.id', 'parkings.name', 'parkings.reference', 'parkings.capacity'])
+                ->get(['parkings.id', 'parkings.name', 'parkings.reference', 'parkings.capacity', 'parkings.is_active'])
                 ->map(fn($p) => [
                     'id'              => $p->id,
                     'name'            => $p->name,
                     'reference'       => $p->reference,
                     'capacity'        => $p->capacity,
+                    'is_active'       => (bool) $p->is_active,
                     'available_spots' => $p->available_spots,
                 ]),
         ]);

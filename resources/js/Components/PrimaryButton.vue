@@ -29,6 +29,6 @@ defineProps({
                hover:bg-white hover:text-[#143f85]
                hover:-translate-y-0.5 hover:shadow-lg"
     >
-        <slot />    
+        <slot />
     </component>
 </template>

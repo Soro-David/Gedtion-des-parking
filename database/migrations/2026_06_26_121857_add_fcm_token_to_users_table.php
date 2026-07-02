@@ -8,15 +8,15 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('versements', function (Blueprint $table) {
-            $table->foreignId('agent_id')->nullable()->change();
+        Schema::table('users', function (Blueprint $table) {
+            $table->string('fcm_token', 255)->nullable()->after('avatar');
         });
     }
 
     public function down(): void
     {
-        Schema::table('versements', function (Blueprint $table) {
-            $table->foreignId('agent_id')->nullable(false)->change();
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn('fcm_token');
         });
     }
 };

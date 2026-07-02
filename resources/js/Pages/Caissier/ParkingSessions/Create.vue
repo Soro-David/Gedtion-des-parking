@@ -8,10 +8,17 @@ import LicensePlateScanner from '@/Components/LicensePlateScanner.vue';
 import { Head, useForm, Link } from '@inertiajs/vue3';
 import { computed, onMounted } from 'vue';
 import CancelButton from '@/Components/CancelButton.vue';
+import Swal from 'sweetalert2';
 
 const props = defineProps({
     parkings: Array,
 });
+
+const assignedParkings = computed(() => props.parkings ?? []);
+const activeParkings = computed(() => assignedParkings.value.filter((parking) => parking.is_active));
+const blockedParkings = computed(() => assignedParkings.value.filter((parking) => !parking.is_active));
+const hasOnlyBlockedAssignedParkings = computed(() => activeParkings.value.length === 0 && blockedParkings.value.length > 0);
+const blockedParkingNames = computed(() => blockedParkings.value.map((parking) => parking.name).join(', '));
 
 const form = useForm({
     parking_id:    '',
@@ -22,16 +29,36 @@ const form = useForm({
 });
 
 // Caissier : auto-sélection si 1 seul parking, sinon sélection manuelle à chaque fois
-const isSingleParking = computed(() => props.parkings.length === 1);
+const isSingleParking = computed(() => activeParkings.value.length === 1);
+
+const showBlockedParkingPopup = (parkingName = blockedParkingNames.value) => {
+    Swal.fire({
+        icon: 'warning',
+        title: 'Parking bloqué',
+        text: parkingName
+            ? `Le parking ${parkingName} est actuellement bloqué. Aucune action n'est autorisée.`
+            : 'Ce parking est actuellement bloqué. Aucune action n\'est autorisée.',
+        confirmButtonText: 'Compris',
+        confirmButtonColor: '#dc2626',
+    });
+};
 
 onMounted(() => {
-    if (props.parkings.length === 1) {
-        form.parking_id = props.parkings[0].id;
+    if (activeParkings.value.length === 0) {
+        if (hasOnlyBlockedAssignedParkings.value) {
+            showBlockedParkingPopup();
+        }
+
+        return;
+    }
+
+    if (activeParkings.value.length === 1) {
+        form.parking_id = activeParkings.value[0].id;
     }
 });
 
 const selectedParking = computed(() =>
-    props.parkings.find((p) => p.id === Number(form.parking_id)) ?? null
+    activeParkings.value.find((p) => p.id === Number(form.parking_id)) ?? null
 );
 
 // L'IA a détecté une plaque → l'appliquer au champ immatriculation
@@ -50,8 +77,18 @@ const onImageCleared = () => {
 };
 
 const submit = () => {
+    if (hasOnlyBlockedAssignedParkings.value) {
+        showBlockedParkingPopup();
+        return;
+    }
+
     form.post(route('caissier.parking-sessions.store'), {
         forceFormData: true,
+        onError: () => {
+            if (form.errors.parking_id) {
+                showBlockedParkingPopup(selectedParking.value?.name);
+            }
+        },
     });
 };
 </script>
@@ -103,11 +140,11 @@ const submit = () => {
                         <InputLabel value="Parking" class="text-sm font-semibold text-gray-700 mb-1.5" />
 
                         <!-- Pas de parking affecté -->
-                        <div v-if="parkings.length === 0" class="flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-red-50 border border-red-100 text-red-700 text-xs font-medium">
+                        <div v-if="activeParkings.length === 0" class="flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-red-50 border border-red-100 text-red-700 text-xs font-medium">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 3a9 9 0 100 18A9 9 0 0012 3z" />
                             </svg>
-                            Aucun parking ne vous est affecté. Contactez votre superviseur.
+                            {{ hasOnlyBlockedAssignedParkings ? 'Votre parking affecté est actuellement bloqué. Aucune action n\'est autorisée.' : 'Aucun parking ne vous est affecté. Contactez votre superviseur.' }}
                         </div>
 
                         <!-- 1 seul parking → carte fixe, pas de changement -->
@@ -118,11 +155,11 @@ const submit = () => {
                                 </svg>
                             </div>
                             <div>
-                                <p class="text-sm font-bold text-gray-800">{{ parkings[0].name }}</p>
+                                <p class="text-sm font-bold text-gray-800">{{ activeParkings[0].name }}</p>
                                 <p class="text-xs text-gray-500">
-                                    Réf. {{ parkings[0].reference }} ·
-                                    <span :class="parkings[0].available_spots > 0 ? 'text-[#143f85]' : 'text-red-600'" class="font-semibold">
-                                        {{ parkings[0].available_spots }} place{{ parkings[0].available_spots !== 1 ? 's' : '' }} libre{{ parkings[0].available_spots !== 1 ? 's' : '' }}
+                                    Réf. {{ activeParkings[0].reference }} ·
+                                    <span :class="activeParkings[0].available_spots > 0 ? 'text-[#143f85]' : 'text-red-600'" class="font-semibold">
+                                        {{ activeParkings[0].available_spots }} place{{ activeParkings[0].available_spots !== 1 ? 's' : '' }} libre{{ activeParkings[0].available_spots !== 1 ? 's' : '' }}
                                     </span>
                                 </p>
                             </div>
@@ -138,7 +175,7 @@ const submit = () => {
                             >
                                 <option value="" disabled>— Choisir un parking —</option>
                                 <option
-                                    v-for="p in parkings"
+                                    v-for="p in activeParkings"
                                     :key="p.id"
                                     :value="p.id"
                                     :disabled="p.available_spots <= 0"
@@ -234,7 +271,7 @@ const submit = () => {
                         <PrimaryButton
                             class=" text-white px-7 py-2.5 rounded-xl font-bold shadow-md transition-all duration-200 hover:-translate-y-0.5 active:scale-95"
                             :class="{ 'opacity-50 cursor-not-allowed': form.processing }"
-                            :disabled="form.processing || parkings.length === 0"
+                            :disabled="form.processing || activeParkings.length === 0"
                         >
                             <span v-if="form.processing">Enregistrement...</span>
                             <span v-else>Enregistrer le Stationnement</span>

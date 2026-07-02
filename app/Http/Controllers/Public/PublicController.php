@@ -68,6 +68,14 @@ class PublicController extends Controller
     }
 
     /**
+     * Page "Politique de confidentialité".
+     */
+    public function politiqueConfidentialite()
+    {
+        return Inertia::render('Public/PolitiqueConfidentialite');
+    }
+
+    /**
      * Traitement du formulaire de contact.
      */
     public function sendContact(Request $request)

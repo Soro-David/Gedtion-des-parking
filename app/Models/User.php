@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -13,7 +13,7 @@ use Laravel\Sanctum\HasApiTokens;
 
 #[Fillable(['name', 'email', 'password'])]
 #[Hidden(['password', 'remember_token'])]
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, HasApiTokens;
@@ -32,12 +32,15 @@ class User extends Authenticatable
         'unique_code',
         'phone',
         'address',
+        'avatar',
+        'fcm_token',
         'emergency_contact',
         'emergency_relationship',
         'emergency_name',
         'invitation_token',
         'invitation_expires_at',
     ];
+
 
     const ROLE_SUPERADMIN = 'superadmin';
     const ROLE_ADMIN = 'admin';
@@ -61,11 +64,34 @@ class User extends Authenticatable
         return $this->belongsToMany(Parking::class, 'user_parkings')->withTimestamps();
     }
 
+    /** Notifications reçues par cet utilisateur */
+    public function notificationLogs()
+    {
+        return $this->hasMany(NotificationLog::class)->latest();
+    }
+
+    /**
+     * Met à jour le token FCM de l'utilisateur
+     */
+    public function updateFcmToken(string $token): void
+    {
+        $this->update(['fcm_token' => $token]);
+    }
+
+    /**
+     * Supprime le token FCM (déconnexion)
+     */
+    public function clearFcmToken(): void
+    {
+        $this->update(['fcm_token' => null]);
+    }
+
     /** Sessions fermées (sorties enregistrées) par cet utilisateur */
     public function closedSessions()
     {
         return $this->hasMany(ParkingSession::class, 'closed_by');
     }
+
 
     /**
      * Helpers to check roles
@@ -110,5 +136,13 @@ class User extends Authenticatable
         });
     }
 
-
+    /**
+     * Get the user's avatar URL.
+     *
+     * @return string|null
+     */
+    public function getAvatarUrlAttribute()
+    {
+        return $this->avatar ? asset('storage/' . $this->avatar) : null;
+    }
 }

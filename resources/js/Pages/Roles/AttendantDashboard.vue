@@ -1,11 +1,12 @@
 <script setup>
-import { Link, useForm } from '@inertiajs/vue3';
+import { Link, router, useForm } from '@inertiajs/vue3';
 import { ref, computed, onMounted, watch } from 'vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
 import InputError from '@/Components/InputError.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import LicensePlateScanner from '@/Components/LicensePlateScanner.vue';
+import Swal from 'sweetalert2';
 
 const props = defineProps({
     stats: {
@@ -42,7 +43,11 @@ const fmtDate = (dt) => {
 const showModal = ref(false);
 const STORAGE_KEY = 'attendant_selected_parking_id';
 
-const parkings = computed(() => props.stats.parkings ?? []);
+const assignedParkings = computed(() => props.stats.parkings ?? []);
+const activeParkings = computed(() => assignedParkings.value.filter((parking) => parking.is_active));
+const blockedParkings = computed(() => assignedParkings.value.filter((parking) => !parking.is_active));
+const hasOnlyBlockedAssignedParkings = computed(() => activeParkings.value.length === 0 && blockedParkings.value.length > 0);
+const blockedParkingNames = computed(() => blockedParkings.value.map((parking) => parking.name).join(', '));
 
 const sessionForm = useForm({
     parking_id:    '',
@@ -52,21 +57,33 @@ const sessionForm = useForm({
     vehicle_image: null,
 });
 
-const isSingleParking = computed(() => parkings.value.length === 1);
+const isSingleParking = computed(() => activeParkings.value.length === 1);
 const showParkingSelector = ref(false);
 
 const selectedParking = computed(() =>
-    parkings.value.find((p) => p.id === Number(sessionForm.parking_id)) ?? null
+    activeParkings.value.find((p) => p.id === Number(sessionForm.parking_id)) ?? null
 );
 
+const showBlockedParkingPopup = (parkingName = blockedParkingNames.value) => {
+    Swal.fire({
+        icon: 'warning',
+        title: 'Parking bloqué',
+        text: parkingName
+            ? `Le parking ${parkingName} est actuellement bloqué. Aucune action n'est autorisée.`
+            : 'Ce parking est actuellement bloqué. Aucune action n\'est autorisée.',
+        confirmButtonText: 'Compris',
+        confirmButtonColor: '#dc2626',
+    });
+};
+
 const initParking = () => {
-    if (parkings.value.length === 0) return;
-    if (parkings.value.length === 1) {
-        sessionForm.parking_id = parkings.value[0].id;
+    if (activeParkings.value.length === 0) return;
+    if (activeParkings.value.length === 1) {
+        sessionForm.parking_id = activeParkings.value[0].id;
         showParkingSelector.value = false;
     } else {
         const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved && parkings.value.find((p) => p.id === Number(saved))) {
+        if (saved && activeParkings.value.find((p) => p.id === Number(saved))) {
             sessionForm.parking_id = Number(saved);
             showParkingSelector.value = false;
         } else {
@@ -76,13 +93,18 @@ const initParking = () => {
 };
 
 watch(() => sessionForm.parking_id, (val) => {
-    if (val && parkings.value.length > 1) {
+    if (val && activeParkings.value.length > 1) {
         localStorage.setItem(STORAGE_KEY, String(val));
         showParkingSelector.value = false;
     }
 });
 
 const openModal = () => {
+    if (hasOnlyBlockedAssignedParkings.value) {
+        showBlockedParkingPopup();
+        return;
+    }
+
     sessionForm.reset();
     sessionForm.clearErrors();
     initParking();
@@ -98,6 +120,11 @@ const onImageSelected = (file) => { sessionForm.vehicle_image = file; };
 const onImageCleared = () => { sessionForm.vehicle_image = null; };
 
 const submitSession = () => {
+    if (selectedParking.value && !selectedParking.value.is_active) {
+        showBlockedParkingPopup(selectedParking.value.name);
+        return;
+    }
+
     const ticketWindow = window.open('', '_blank');
     sessionForm.post(route('attendant.parking-sessions.store'), {
         forceFormData: true,
@@ -112,8 +139,21 @@ const submitSession = () => {
         },
         onError: () => {
             if (ticketWindow) ticketWindow.close();
+
+            if (sessionForm.errors.parking_id) {
+                showBlockedParkingPopup(selectedParking.value?.name);
+            }
         },
     });
+};
+
+const goToCheckout = () => {
+    if (hasOnlyBlockedAssignedParkings.value) {
+        showBlockedParkingPopup();
+        return;
+    }
+
+    router.visit(route('attendant.checkout'));
 };
 </script>
 
@@ -189,7 +229,9 @@ const submitSession = () => {
                     </div>
                     <span class="text-xs font-bold text-gray-700 text-center">Stationnements</span>
                 </button>
-                <Link :href="route('attendant.checkout')"
+                <button
+                    type="button"
+                    @click="goToCheckout"
                     class="flex flex-col items-center gap-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:border-green-200 hover:shadow-md transition-all group">
                     <div class="w-10 h-10 rounded-xl bg-green-50 group-hover:bg-green-100 flex items-center justify-center transition-colors">
                         <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -197,7 +239,7 @@ const submitSession = () => {
                         </svg>
                     </div>
                     <span class="text-xs font-bold text-gray-700 text-center">Enregistrer sortie</span>
-                </Link>
+                </button>
                 <Link :href="route('attendant.reversements.index')"
                     class="flex flex-col items-center gap-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:border-purple-200 hover:shadow-md transition-all group">
                     <div class="w-10 h-10 rounded-xl bg-purple-50 group-hover:bg-purple-100 flex items-center justify-center transition-colors">
@@ -282,19 +324,19 @@ const submitSession = () => {
                     <!-- Parking -->
                     <div>
                         <InputLabel value="Parking" class="text-sm font-semibold text-gray-700 mb-1.5" />
-                        <div v-if="parkings.length === 0" class="flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-red-50 border border-red-100 text-red-700 text-xs font-medium">
-                            Aucun parking ne vous est affecté. Contactez votre superviseur.
+                        <div v-if="activeParkings.length === 0" class="flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-red-50 border border-red-100 text-red-700 text-xs font-medium">
+                            {{ hasOnlyBlockedAssignedParkings ? 'Votre parking affecté est actuellement bloqué. Aucune action n\'est autorisée.' : 'Aucun parking ne vous est affecté. Contactez votre superviseur.' }}
                         </div>
                         <div v-else-if="isSingleParking" class="flex items-center gap-3 px-4 py-3 rounded-2xl border-2 border-[#143f85] bg-green-50">
                             <div class="w-8 h-8 rounded-lg bg-[#143f85] text-white flex items-center justify-center flex-shrink-0">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
                             </div>
                             <div>
-                                <p class="text-sm font-bold text-gray-800">{{ parkings[0].name }}</p>
+                                <p class="text-sm font-bold text-gray-800">{{ activeParkings[0].name }}</p>
                                 <p class="text-xs text-gray-500">
-                                    Réf. {{ parkings[0].reference }} ·
-                                    <span :class="parkings[0].available_spots > 0 ? 'text-[#143f85]' : 'text-red-600'" class="font-semibold">
-                                        {{ parkings[0].available_spots }} place{{ parkings[0].available_spots !== 1 ? 's' : '' }} libre{{ parkings[0].available_spots !== 1 ? 's' : '' }}
+                                    Réf. {{ activeParkings[0].reference }} ·
+                                    <span :class="activeParkings[0].available_spots > 0 ? 'text-[#143f85]' : 'text-red-600'" class="font-semibold">
+                                        {{ activeParkings[0].available_spots }} place{{ activeParkings[0].available_spots !== 1 ? 's' : '' }} libre{{ activeParkings[0].available_spots !== 1 ? 's' : '' }}
                                     </span>
                                 </p>
                             </div>
@@ -314,7 +356,7 @@ const submitSession = () => {
                             <select v-else v-model="sessionForm.parking_id" required
                                 class="block w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-800 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all">
                                 <option value="" disabled>— Choisir un parking —</option>
-                                <option v-for="p in parkings" :key="p.id" :value="p.id" :disabled="p.available_spots <= 0">
+                                <option v-for="p in activeParkings" :key="p.id" :value="p.id" :disabled="p.available_spots <= 0">
                                     {{ p.name }} ({{ p.available_spots }} place{{ p.available_spots !== 1 ? 's' : '' }} libre{{ p.available_spots !== 1 ? 's' : '' }})
                                 </option>
                             </select>
@@ -370,7 +412,7 @@ const submitSession = () => {
                         <PrimaryButton
                             class="text-white px-7 py-2.5 rounded-xl font-bold shadow-md transition-all duration-200 hover:-translate-y-0.5 active:scale-95"
                             :class="{ 'opacity-50 cursor-not-allowed': sessionForm.processing }"
-                            :disabled="sessionForm.processing || parkings.length === 0">
+                            :disabled="sessionForm.processing || activeParkings.length === 0">
                             <span v-if="sessionForm.processing">Enregistrement...</span>
                             <span v-else>Enregistrer le Stationnement</span>
                         </PrimaryButton>

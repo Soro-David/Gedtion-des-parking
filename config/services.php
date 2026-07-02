@@ -37,7 +37,7 @@ return [
 
     'gemini' => [
         'key'       => env('GEMINI_API_KEY'),
-        'model'     => env('GEMINI_VISION_MODEL', 'gemini-1.5-flash'),
+        'model'     => env('GEMINI_VISION_MODEL', 'gemini-2.5-flash'),
         'ca_bundle' => env('CURL_CA_BUNDLE', ''),
     ],
 

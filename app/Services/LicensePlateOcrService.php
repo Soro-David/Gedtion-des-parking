@@ -21,7 +21,7 @@ class LicensePlateOcrService
     public function __construct()
     {
         $this->apiKey = config('services.gemini.key', '');
-        $this->model  = config('services.gemini.model', 'gemini-1.5-flash');
+        $this->model  = config('services.gemini.model', 'gemini-2.5-flash');
     }
 
     /**
@@ -85,20 +85,72 @@ class LicensePlateOcrService
                 return null;
             }
 
-            $raw = trim($response->json('candidates.0.content.parts.0.text') ?? '');
+            $parts = $response->json('candidates.0.content.parts', []);
+            $raw = trim(collect($parts)
+                ->pluck('text')
+                ->filter(fn ($text) => is_string($text) && trim($text) !== '')
+                ->implode(' '));
 
-            if ($raw === '' || strtoupper($raw) === 'NOT_FOUND') {
+            if ($raw === '') {
+                $raw = trim((string) ($response->json('candidates.0.content.parts.0.text') ?? ''));
+            }
+
+            Log::info('[LicensePlateOcr] Appel Gemini réussi', [
+                'raw_response' => $raw,
+            ]);
+
+            if ($raw === '') {
                 return null;
             }
 
-            // Nettoyage : supprime espaces, tirets, points éventuellement introduits
-            return strtoupper(preg_replace('/[\s\-\.]+/', '', $raw));
+            $cleaned = $this->extractBestPlateCandidate($raw);
+
+            if ($cleaned === null) {
+                return null;
+            }
+            
+            Log::info('[LicensePlateOcr] Plaque extraite avec succès', [
+                'cleaned_plate' => $cleaned,
+            ]);
+
+            return $cleaned;
         } catch (\Throwable $e) {
             Log::error('[LicensePlateOcr] Exception lors de l\'appel Gemini', [
                 'message' => $e->getMessage(),
+                'trace'   => $e->getTraceAsString(),
             ]);
             return null;
         }
+    }
+
+    /**
+     * Extrait la meilleure candidate de plaque à partir du texte brut retourné par le modèle.
+     */
+    private function extractBestPlateCandidate(string $raw): ?string
+    {
+        $upper = strtoupper($raw);
+
+        if (preg_match('/\bNOT_FOUND\b/', $upper)) {
+            return null;
+        }
+
+        preg_match_all('/[A-Z0-9]+(?:[\s\-\.][A-Z0-9]+)*/', $upper, $matches);
+        $candidates = $matches[0] ?? [];
+
+        $normalizedCandidates = collect($candidates)
+            ->map(fn ($candidate) => preg_replace('/[^A-Z0-9]+/', '', (string) $candidate))
+            ->filter(fn ($candidate) => is_string($candidate) && strlen($candidate) >= 4)
+            ->values();
+
+        if ($normalizedCandidates->isNotEmpty()) {
+            return $normalizedCandidates
+                ->sortByDesc(fn ($candidate) => strlen($candidate))
+                ->first();
+        }
+
+        $fallback = preg_replace('/[^A-Z0-9]+/', '', $upper);
+
+        return $fallback !== '' ? $fallback : null;
     }
 
     /**

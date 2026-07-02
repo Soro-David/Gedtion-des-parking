@@ -29,14 +29,14 @@ class ParkingSessionController extends Controller
     public function create()
     {
         $parkings = auth()->user()->parkings()
-            ->where('parkings.is_active', true)
-            ->get(['parkings.id', 'parkings.name', 'parkings.reference', 'parkings.capacity'])
+            ->get(['parkings.id', 'parkings.name', 'parkings.reference', 'parkings.capacity', 'parkings.is_active'])
             ->map(function ($parking) {
                 return [
                     'id'              => $parking->id,
                     'name'            => $parking->name,
                     'reference'       => $parking->reference,
                     'capacity'        => $parking->capacity,
+                    'is_active'       => (bool) $parking->is_active,
                     'available_spots' => $parking->available_spots,
                 ];
             });
@@ -68,12 +68,29 @@ class ParkingSessionController extends Controller
 
         $parking = Parking::findOrFail($request->parking_id);
 
+        if (! $parking->is_active) {
+            Log::warning('Tentative d\'action sur un parking bloqué (agent)', [
+                'parking_id' => $parking->id,
+                'agent_id'   => auth()->id(),
+            ]);
+
+            return back()->withErrors(['parking_id' => 'Ce parking est actuellement bloqué. Aucune action n\'est autorisée.']);
+        }
+
         if ($parking->available_spots <= 0) {
             Log::warning('Tentative de stationnement sur parking complet (agent)', [
                 'parking_id' => $parking->id,
                 'agent_id'   => auth()->id(),
             ]);
             return back()->withErrors(['parking_id' => 'Ce parking n\'a plus de places disponibles.']);
+        }
+
+        $normalizedPlate = ParkingSession::normalizeLicensePlate($request->license_plate);
+
+        if (ParkingSession::hasActiveForLicensePlate($normalizedPlate)) {
+            return back()->withErrors([
+                'license_plate' => 'Ce véhicule a déjà un stationnement actif.',
+            ])->withInput();
         }
 
         $imagePath = null;
@@ -83,7 +100,7 @@ class ParkingSessionController extends Controller
 
         $session = ParkingSession::create([
             'parking_id'    => $parking->id,
-            'license_plate' => strtoupper($request->license_plate),
+            'license_plate' => $normalizedPlate,
             'marque'        => $request->marque,
             'modele'        => $request->modele,
             'vehicle_image' => $imagePath,
@@ -94,7 +111,7 @@ class ParkingSessionController extends Controller
 
         Log::info('Session de stationnement enregistrée (agent)', [
             'parking_id'    => $parking->id,
-            'license_plate' => strtoupper($request->license_plate),
+            'license_plate' => $normalizedPlate,
             'agent_id'      => auth()->id(),
         ]);
 
@@ -129,6 +146,7 @@ class ParkingSessionController extends Controller
                 'modele'           => $s->modele,
                 'parking_name'     => $s->parking?->name,
                 'parking_id'       => $s->parking_id,
+                'parking_is_active'=> (bool) $s->parking?->is_active,
                 'parking_price'    => $s->parking?->price,
                 'started_at'       => $s->started_at,
                 'duration_minutes' => $minutes,
@@ -157,6 +175,18 @@ class ParkingSessionController extends Controller
         $session = ParkingSession::where('id', $request->session_id)
             ->where('status', 'occupied')
             ->firstOrFail();
+
+        $session->load('parking');
+
+        if (! $session->parking?->is_active) {
+            Log::warning('Tentative de sortie sur un parking bloqué (agent)', [
+                'session_id' => $session->id,
+                'parking_id' => $session->parking_id,
+                'agent_id'   => auth()->id(),
+            ]);
+
+            return back()->withErrors(['session_id' => 'Ce parking est actuellement bloqué. Aucune action n\'est autorisée.']);
+        }
 
         $endedAt = now();
         $minutes = (int) ceil($session->started_at->diffInMinutes($endedAt));
