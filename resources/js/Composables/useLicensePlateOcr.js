@@ -1,10 +1,8 @@
 import { ref } from 'vue';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
+import axios from 'axios';
 
 /**
- * Composable réutilisable pour la reconnaissance de plaque d'immatriculation via Gemini.
+ * Composable réutilisable pour la reconnaissance de plaque d'immatriculation via le backend Laravel.
  *
  * Usage dans n'importe quel composant Vue :
  *   import { useLicensePlateOcr } from '@/Composables/useLicensePlateOcr';
@@ -17,20 +15,7 @@ export function useLicensePlateOcr() {
     const error     = ref(null);
 
     /**
-     * Convertit un File/Blob en base64 (sans le préfixe data URL).
-     *
-     * @param {File|Blob} file
-     * @returns {Promise<string>}
-     */
-    const toBase64 = (file) => new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload  = () => resolve(reader.result.split(',')[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-    });
-
-    /**
-     * Envoie une image à Gemini et retourne la plaque détectée.
+     * Envoie une image au backend pour l'analyse OCR et retourne la plaque détectée.
      *
      * @param {File|Blob} imageFile - Le fichier image à analyser.
      * @returns {Promise<string|null>} - La plaque en majuscules, ou null si non détectée.
@@ -40,24 +25,19 @@ export function useLicensePlateOcr() {
         error.value     = null;
 
         try {
-            const base64    = await toBase64(imageFile);
-            const mimeType  = imageFile.type || 'image/jpeg';
-            const model     = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+            const formData = new FormData();
+            formData.append('image', imageFile);
 
-            const result = await model.generateContent([
-                {
-                    inlineData: { data: base64, mimeType },
+            const res = await axios.post(route('api.ocr.license-plate'), formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
                 },
-                'Extract the vehicle license plate number from this image. '
-                    + 'Return ONLY the plate number in uppercase, without spaces, dashes or any explanation. '
-                    + 'If no plate is visible or readable, return exactly: NOT_FOUND',
-            ]);
+            });
 
-            const raw = result.response.text().trim().toUpperCase().replace(/[\s\-.]+/g, '');
-
-            return raw === '' || raw === 'NOT_FOUND' ? null : raw;
+            return res.data.plate; // La clé retournée est 'plate'
         } catch (err) {
-            error.value = err.message ?? 'Erreur lors de la reconnaissance de la plaque.';
+            const serverMessage = err.response?.data?.message;
+            error.value = serverMessage ?? 'Erreur lors de la reconnaissance de la plaque.';
             return null;
         } finally {
             isLoading.value = false;

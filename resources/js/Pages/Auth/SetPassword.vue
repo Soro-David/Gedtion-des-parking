@@ -5,6 +5,7 @@ import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { Head, useForm } from '@inertiajs/vue3';
+import { ref } from 'vue';
 
 const props = defineProps({
     token: { type: String, required: true },
@@ -16,7 +17,21 @@ const form = useForm({
     token:                 props.token,
     password:              '',
     password_confirmation: '',
+    avatar:                null,
 });
+
+const avatarPreview = ref(null);
+
+const onFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        form.avatar = file;
+        avatarPreview.value = URL.createObjectURL(file);
+    } else {
+        form.avatar = null;
+        avatarPreview.value = null;
+    }
+};
 
 const submit = () => {
     form.post(route('invitation.store'), {
@@ -67,6 +82,31 @@ const submit = () => {
                     autocomplete="new-password"
                 />
                 <InputError :message="form.errors.password_confirmation" class="mt-1" />
+            </div>
+
+            <div>
+                <InputLabel for="avatar" value="Photo de profil (Optionnelle)" />
+                <div class="mt-2 flex items-center gap-4">
+                    <div class="w-16 h-16 rounded-full border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center">
+                        <img v-if="avatarPreview" :src="avatarPreview" class="w-full h-full object-cover" />
+                        <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                    </div>
+                    <input
+                        id="avatar"
+                        type="file"
+                        class="block w-full text-sm text-gray-500
+                               file:mr-4 file:py-2 file:px-4
+                               file:rounded-xl file:border-0
+                               file:text-sm file:font-semibold
+                               file:bg-green-50 file:text-green-700
+                               hover:file:bg-green-100 cursor-pointer"
+                        accept="image/*"
+                        @change="onFileChange"
+                    />
+                </div>
+                <InputError :message="form.errors.avatar" class="mt-1" />
             </div>
 
             <InputError :message="form.errors.token" />

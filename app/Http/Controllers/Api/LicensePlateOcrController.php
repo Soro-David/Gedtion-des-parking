@@ -20,7 +20,7 @@ class LicensePlateOcrController extends Controller
     public function extract(Request $request): JsonResponse
     {
         $request->validate([
-            'image' => 'required|image|max:5120', // 5000 Mo max
+            'image' => 'required|image|max:10240', // 10 Mo max
         ]);
 
         $plate = $this->ocrService->extractFromUploadedFile($request->file('image'));

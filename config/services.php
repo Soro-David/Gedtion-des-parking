@@ -35,10 +35,19 @@ return [
         ],
     ],
 
+    'ocr' => [
+        'driver' => env('OCR_DRIVER', 'gemini'),
+    ],
+
     'gemini' => [
         'key'       => env('GEMINI_API_KEY'),
-        'model'     => env('GEMINI_VISION_MODEL', 'gemini-2.5-flash'),
+        'model'     => env('GEMINI_VISION_MODEL', 'gemini-3.5-flash'),
         'ca_bundle' => env('CURL_CA_BUNDLE', ''),
+    ],
+
+    'anthropic' => [
+        'key'   => env('ANTHROPIC_API_KEY'),
+        'model' => env('ANTHROPIC_MODEL', 'claude-3-5-sonnet-latest'),
     ],
 
     'google_maps' => [

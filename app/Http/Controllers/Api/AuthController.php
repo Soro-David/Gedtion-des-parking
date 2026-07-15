@@ -180,6 +180,34 @@ class AuthController extends Controller
     }
 
     /**
+     * Modification du mot de passe de l'utilisateur connecté.
+     */
+    public function changePassword(Request $request)
+    {
+        $request->validate([
+            'old_password' => ['required', 'string'],
+            'new_password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $user = $request->user();
+
+        if (!Hash::check($request->old_password, $user->password)) {
+            throw ValidationException::withMessages([
+                'old_password' => ['Le mot de passe actuel est incorrect.'],
+            ]);
+        }
+
+        $user->update([
+            'password' => Hash::make($request->new_password),
+        ]);
+
+        return response()->json([
+            'message' => 'Mot de passe modifié avec succès.',
+        ]);
+    }
+
+
+    /**
      * Demande d'un lien de réinitialisation de mot de passe (mot de passe oublié).
      */
     public function forgotPassword(Request $request)
