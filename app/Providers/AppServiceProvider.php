@@ -2,10 +2,13 @@
 
 namespace App\Providers;
 
+use App\Services\Contracts\OcrProviderInterface;
+use App\Services\PlateRecognizerService;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Auth\Notifications\ResetPassword;
+use Laravel\Sanctum\Sanctum;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -14,7 +17,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(OcrProviderInterface::class, function ($app) {
+            $driver = config('services.ocr.driver', 'platerecognizer');
+
+            return match ($driver) {
+                'platerecognizer' => $app->make(PlateRecognizerService::class),
+                // Possibilité de mapper d'autres services (e.g. Gemini/Claude) à l'avenir
+                default => $app->make(PlateRecognizerService::class),
+            };
+        });
     }
 
     /**
@@ -26,10 +37,10 @@ class AppServiceProvider extends ServiceProvider
         Vite::prefetch(concurrency: 3);
 
         ResetPassword::createUrlUsing(function ($user, string $token) {
-            return request()->schemeAndHttpHost() . '/reset-password/' . $token . '?email=' . urlencode($user->email);
+            return request()->schemeAndHttpHost().'/reset-password/'.$token.'?email='.urlencode($user->email);
         });
 
-        \Laravel\Sanctum\Sanctum::getAccessTokenFromRequestUsing(function ($request) {
+        Sanctum::getAccessTokenFromRequestUsing(function ($request) {
             return $request->query('token') ?? $request->bearerToken();
         });
     }

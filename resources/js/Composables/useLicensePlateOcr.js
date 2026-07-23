@@ -28,11 +28,7 @@ export function useLicensePlateOcr() {
             const formData = new FormData();
             formData.append('image', imageFile);
 
-            const res = await axios.post(route('api.ocr.license-plate'), formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            });
+            const res = await axios.post(route('api.ocr.recognize'), formData);
 
             return res.data.plate; // La clé retournée est 'plate'
         } catch (err) {

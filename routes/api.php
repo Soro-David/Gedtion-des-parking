@@ -1,18 +1,19 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\NotificationController;
-use App\Http\Controllers\Api\LicensePlateOcrController;
-use App\Http\Controllers\Api\ParkingAiAssistantController;
-use App\Http\Controllers\Api\Agent\ParkingSessionController as AgentParkingSessionController;
-use App\Http\Controllers\Api\Agent\AgentVersementController;
 use App\Http\Controllers\Api\Agent\AgentStatController;
-
-use App\Http\Controllers\Api\Caissier\ParkingSessionController as CaissierParkingSessionController;
-use App\Http\Controllers\Api\Caissier\CaissierVersementController;
+use App\Http\Controllers\Api\Agent\AgentVersementController;
+use App\Http\Controllers\Api\Agent\ParkingSessionController as AgentParkingSessionController;
+use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\Caissier\CaissierStatController;
+use App\Http\Controllers\Api\Caissier\CaissierVersementController;
+use App\Http\Controllers\Api\Caissier\ParkingSessionController as CaissierParkingSessionController;
+use App\Http\Controllers\Api\LicensePlateOcrController;
+use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\ParkingAiAssistantController;
+use App\Http\Controllers\Api\PlateRecognitionController;
 use App\Http\Controllers\Api\SignalementController;
+use Illuminate\Support\Facades\Route;
+
 /*
 |--------------------------------------------------------------------------
 | auth/ — Authentification (public)
@@ -28,7 +29,7 @@ Route::prefix('auth')->group(function () {
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
-        Route::get('/me',     [AuthController::class, 'me']);
+        Route::get('/me', [AuthController::class, 'me']);
         Route::post('/profile', [AuthController::class, 'updateProfile']);
         Route::post('/password/change', [AuthController::class, 'changePassword']);
     });
@@ -44,7 +45,7 @@ Route::prefix('attendant')
 
         // Reconnaissance de plaque d'immatriculation
         Route::prefix('ocr')->group(function () {
-            Route::post('/license-plate', [LicensePlateOcrController::class, 'extract']);
+            Route::post('/license-plate', [PlateRecognitionController::class, 'recognize']);
         });
 
         // Assistant IA parking
@@ -62,8 +63,8 @@ Route::prefix('attendant')
         });
 
         Route::prefix('versements')->group(function () {
-            Route::get('list', [AgentVersementController::class,'list']);
-            Route::get('list/{id}', [AgentVersementController::class,'show']);
+            Route::get('list', [AgentVersementController::class, 'list']);
+            Route::get('list/{id}', [AgentVersementController::class, 'show']);
             Route::post('/', [AgentVersementController::class, 'store']);
         });
         Route::get('/stats', [AgentParkingSessionController::class, 'stats']);
@@ -82,14 +83,12 @@ Route::prefix('attendant')
         });
     });
 
-
-
 Route::prefix('caissier')
     ->middleware(['auth:sanctum', 'role:caissier'])->group(function () {
 
         // Reconnaissance de plaque d'immatriculation
         Route::prefix('ocr')->group(function () {
-            Route::post('/license-plate', [LicensePlateOcrController::class, 'extract']);
+            Route::post('/license-plate', [PlateRecognitionController::class, 'recognize']);
         });
 
         // Assistant IA parking
@@ -107,8 +106,8 @@ Route::prefix('caissier')
         });
 
         Route::prefix('versements')->group(function () {
-            Route::get('list', [CaissierVersementController::class,'list']);
-            Route::get('list/{id}', [CaissierVersementController::class,'show']);
+            Route::get('list', [CaissierVersementController::class, 'list']);
+            Route::get('list/{id}', [CaissierVersementController::class, 'show']);
             Route::post('/', [CaissierVersementController::class, 'store']);
         });
 
@@ -127,7 +126,6 @@ Route::prefix('caissier')
             Route::get('/stationnement-en-cours', [CaissierStatController::class, 'stationnement_en_cours']);
         });
     });
-
 
 /*
 |--------------------------------------------------------------------------

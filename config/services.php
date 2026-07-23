@@ -36,7 +36,13 @@ return [
     ],
 
     'ocr' => [
-        'driver' => env('OCR_DRIVER', 'gemini'),
+        'driver' => env('OCR_DRIVER', 'platerecognizer'),
+    ],
+
+    'platerecognizer' => [
+        'token'   => env('PLATE_RECOGNIZER_API_TOKEN'),
+        'url'     => env('PLATE_RECOGNIZER_API_URL', 'https://api.platerecognizer.com/v1/plate-reader/'),
+        'timeout' => (int) env('PLATE_RECOGNIZER_TIMEOUT', 15),
     ],
 
     'gemini' => [

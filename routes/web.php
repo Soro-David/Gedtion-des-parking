@@ -1,43 +1,43 @@
 <?php
 
-use App\Http\Controllers\Auth\AuthenticatedSessionController;
-use App\Http\Controllers\Auth\RegisteredUserController;
-use App\Http\Controllers\Auth\InvitationController;
-use App\Http\Controllers\Auth\PasswordResetLinkController;
-use App\Http\Controllers\Auth\NewPasswordController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\Admin\SuperviseurController;
-use App\Http\Controllers\Admin\AgentController;
 use App\Http\Controllers\Admin\AdminUserController;
+use App\Http\Controllers\Admin\AgentController;
 use App\Http\Controllers\Admin\CaissierController;
 use App\Http\Controllers\Admin\HistoryController;
 use App\Http\Controllers\Admin\ReversementController as AdminReversementController;
+use App\Http\Controllers\Admin\SuperviseurController;
 use App\Http\Controllers\Admin\VersementController as AdminVersementController;
-use App\Http\Controllers\SuperAdmin\AdminController;
-use App\Http\Controllers\SuperAdmin\DashboardController as SuperAdminDashboardController;
-use App\Http\Controllers\SuperAdmin\UserController as SuperAdminUserController;
-use App\Http\Controllers\SuperAdmin\HistoryController as SuperAdminHistoryController;
-use App\Http\Controllers\SuperAdmin\ParkingsController as SuperAdminParkingsController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\ParkingRateController;
-use App\Http\Controllers\Caissier\ParkingSessionController;
-use App\Http\Controllers\Caissier\ReversementController as CaissierReversementController;
-use App\Http\Controllers\ParkingController;
-use App\Http\Controllers\Api\LicensePlateOcrController;
 use App\Http\Controllers\Api\ParkingAiAssistantController;
-use App\Http\Controllers\Supervisor\CaissierController as SupervisorCaissierController;
-use App\Http\Controllers\Supervisor\AttendantController;
-use App\Http\Controllers\Supervisor\UserController as SupervisorUserController;
-use App\Http\Controllers\Supervisor\HistoryController as SupervisorHistoryController;
-use App\Http\Controllers\Supervisor\ReversementController as SupervisorReversementController;
-use App\Http\Controllers\Supervisor\VersementController as SupervisorVersementController;
+use App\Http\Controllers\Api\PlateRecognitionController;
 use App\Http\Controllers\Attendant\DriverController;
 use App\Http\Controllers\Attendant\ParkingSessionController as AttendantParkingSessionController;
 use App\Http\Controllers\Attendant\ReversementController as AttendantReversementController;
-use App\Http\Controllers\Caissier\RapportController as CaissierRapportController;
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\InvitationController;
+use App\Http\Controllers\Auth\NewPasswordController;
+use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Caissier\CaissierController as CaissierDashboardController;
+use App\Http\Controllers\Caissier\ParkingSessionController;
+use App\Http\Controllers\Caissier\RapportController as CaissierRapportController;
+use App\Http\Controllers\Caissier\ReversementController as CaissierReversementController;
 use App\Http\Controllers\Caissier\VersementController as CaissierVersementController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ParkingController;
+use App\Http\Controllers\ParkingRateController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Public\PublicController;
+use App\Http\Controllers\SuperAdmin\AdminController;
+use App\Http\Controllers\SuperAdmin\DashboardController as SuperAdminDashboardController;
+use App\Http\Controllers\SuperAdmin\HistoryController as SuperAdminHistoryController;
+use App\Http\Controllers\SuperAdmin\ParkingsController as SuperAdminParkingsController;
+use App\Http\Controllers\SuperAdmin\UserController as SuperAdminUserController;
+use App\Http\Controllers\Supervisor\AttendantController;
+use App\Http\Controllers\Supervisor\CaissierController as SupervisorCaissierController;
+use App\Http\Controllers\Supervisor\HistoryController as SupervisorHistoryController;
+use App\Http\Controllers\Supervisor\ReversementController as SupervisorReversementController;
+use App\Http\Controllers\Supervisor\UserController as SupervisorUserController;
+use App\Http\Controllers\Supervisor\VersementController as SupervisorVersementController;
 // use App\Http\Controllers\Caissier\ParkingSessionController;
 use Illuminate\Support\Facades\Route;
 
@@ -58,7 +58,7 @@ Route::post('/invitation', [InvitationController::class, 'store'])->name('invita
 Route::middleware('guest')->group(function () {
     Route::get('login', [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('login', [AuthenticatedSessionController::class, 'store']);
-    
+
     // Si tu souhaites garder l'inscription publique, laisse cette ligne
     Route::get('register', [RegisteredUserController::class, 'create'])->name('register');
     Route::post('register', [RegisteredUserController::class, 'store']);
@@ -75,7 +75,7 @@ Route::middleware('guest')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth')->group(function () {
-    
+
     // Déconnexion
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 
@@ -83,7 +83,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // OCR : reconnaissance de plaque (accessible à tous les utilisateurs authentifiés)
-    Route::post('api/ocr/license-plate', [LicensePlateOcrController::class, 'extract'])->name('api.ocr.license-plate');
+    Route::post('api/ocr/recognize', [PlateRecognitionController::class, 'recognize'])->name('api.ocr.recognize');
 
     // Assistant IA Parking (Gemini)
     Route::post('api/parking-ai/ask', [ParkingAiAssistantController::class, 'ask'])->name('api.parking-ai.ask');
@@ -157,7 +157,7 @@ Route::middleware('auth')->group(function () {
                 Route::post('/{agent}/resend-invitation', [AgentController::class, 'resendInvitation'])->name('resend-invitation');
             });
 
-             Route::prefix('caissier')->name('caissier.')->group(function () {
+            Route::prefix('caissier')->name('caissier.')->group(function () {
                 Route::get('/', [CaissierController::class, 'index'])->name('index');
                 Route::get('/create', [CaissierController::class, 'create'])->name('create');
                 Route::post('/', [CaissierController::class, 'store'])->name('store');
@@ -248,7 +248,7 @@ Route::middleware('auth')->group(function () {
             Route::post('reversements', [AttendantReversementController::class, 'store'])->name('reversements.store');
         });
     });
-    
+
     // Caissier : accès dédié (ex: tableau de bord caisse)
     Route::middleware('role:caissier')->group(function () {
         Route::prefix('caissier')->name('caissier.')->group(function () {
@@ -281,5 +281,5 @@ Route::middleware('auth')->group(function () {
             Route::get('versements', [CaissierVersementController::class, 'index'])->name('versements.index');
         });
     });
-    
+
 });
