@@ -17,10 +17,20 @@ class AttendantController extends Controller
 {
     public function index()
     {
-        $supervisorId = auth()->user()?->id;
+        $supervisor = auth()->user();
+        $supervisorId = $supervisor->id;
+
+        // Retrieve the active parkings assigned to this supervisor
+        $assigned = $supervisor->parkings()->where('is_active', true)->get();
+        $parkingIds = $assigned->isNotEmpty()
+            ? $assigned->pluck('id')
+            : Parking::where('is_active', true)->pluck('id');
 
         $attendants = User::where('role', User::ROLE_ATTENDANT)
-            ->whereHas('attendant', fn ($q) => $q->where('created_by', $supervisorId))
+            ->where(function ($query) use ($parkingIds, $supervisorId) {
+                $query->whereHas('parkings', fn ($q) => $q->whereIn('parkings.id', $parkingIds))
+                      ->orWhereHas('attendant', fn ($q) => $q->where('created_by', $supervisorId));
+            })
             ->with('attendant.creator')
             ->latest()
             ->get();

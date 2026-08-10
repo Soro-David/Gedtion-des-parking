@@ -13,7 +13,21 @@ class VersementController extends Controller
 {
     public function index()
     {
-        $agents = User::whereIn('role', ['attendant', 'caissier'])
+        $supervisor = auth()->user();
+        $supervisorId = $supervisor->id;
+
+        // Retrieve the active parkings assigned to this supervisor
+        $assigned = $supervisor->parkings()->where('is_active', true)->get();
+        $parkingIds = $assigned->isNotEmpty()
+            ? $assigned->pluck('id')
+            : \App\Models\Parking::where('is_active', true)->pluck('id');
+
+        $agents = User::whereIn('role', [User::ROLE_ATTENDANT, User::ROLE_CAISSIER])
+            ->where(function ($query) use ($parkingIds, $supervisorId) {
+                $query->whereHas('parkings', fn ($q) => $q->whereIn('parkings.id', $parkingIds))
+                      ->orWhereHas('attendant', fn ($q) => $q->where('created_by', $supervisorId))
+                      ->orWhereHas('caissier', fn ($q) => $q->where('created_by', $supervisorId));
+            })
             ->get()
             ->map(function (User $user) {
                 $sessions = ParkingSession::where('closed_by', $user->id)

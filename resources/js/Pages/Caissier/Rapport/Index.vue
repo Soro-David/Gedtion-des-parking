@@ -210,9 +210,9 @@ const periodeLabel = computed(() => {
                                 <td class="px-5 py-3 text-center">
                                     <span :class="[
                                         'text-xs font-bold px-2.5 py-1 rounded-full',
-                                        s.reversement_id ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                                        s.versement_id ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
                                     ]">
-                                        {{ s.reversement_id ? 'Oui' : 'Non' }}
+                                        {{ s.versement_id ? 'Oui' : 'Non' }}
                                     </span>
                                 </td>
                             </tr>

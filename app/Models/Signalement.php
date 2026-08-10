@@ -12,6 +12,9 @@ class Signalement extends Model
         'parking_id',
         'license_plate',
         'motif',
+        'type',
+        'phone',
+        'sms_status',
     ];
 
     /**

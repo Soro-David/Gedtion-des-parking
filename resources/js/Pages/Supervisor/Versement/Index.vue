@@ -149,7 +149,7 @@ const roleLabel = (r) => r === 'attendant' ? 'Agent' : 'Caissier';
                                 <span class="font-bold text-slate-700">{{ fmt(agent.collected_amount) }}</span>
                             </div>
                             <div v-if="agent.previous_debt > 0" class="flex justify-between">
-                                <span class="text-rose-500 font-semibold">Dette précédente</span>
+                                <span class="text-rose-500 font-semibold">Dette</span>
                                 <span class="font-bold text-rose-600">{{ fmt(agent.previous_debt) }}</span>
                             </div>
                             <div class="flex justify-between pt-1 border-t border-slate-100">

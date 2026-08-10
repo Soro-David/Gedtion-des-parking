@@ -10,6 +10,7 @@ class ParkingSession extends Model
     protected $fillable = [
         'parking_id',
         'license_plate',
+        'phone',
         'marque',
         'modele',
         'vehicle_image',
@@ -64,7 +65,12 @@ class ParkingSession extends Model
 
     public static function normalizeLicensePlate(?string $licensePlate): string
     {
-        return strtoupper(trim((string) $licensePlate));
+        $plate = strtoupper(trim((string) $licensePlate));
+        // Remove 2 leading letters (e.g. "CI") if they are followed by numbers, spaces, or dashes
+        if (preg_match('/^[A-Z]{2}(?=[0-9\s\-])/', $plate)) {
+            $plate = preg_replace('/^[A-Z]{2}[\s\-]*/', '', $plate);
+        }
+        return $plate;
     }
 
     public static function hasActiveForLicensePlate(string $licensePlate): bool

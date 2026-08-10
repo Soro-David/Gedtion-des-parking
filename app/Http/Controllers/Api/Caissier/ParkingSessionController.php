@@ -23,6 +23,7 @@ class ParkingSessionController extends Controller
         $request->validate([
             'parking_id'    => 'required|exists:parkings,id',
             'license_plate' => 'required|string|max:20',
+            'phone'         => 'nullable|string|max:20',
             'marque'        => 'nullable|string|max:100',
             'modele'        => 'nullable|string|max:100',
             'vehicle_image' => 'nullable|image|max:5120',
@@ -70,6 +71,7 @@ class ParkingSessionController extends Controller
         $session = ParkingSession::create([
             'parking_id'    => $parking->id,
             'license_plate' => $normalizedPlate,
+            'phone'         => $request->phone,
             'marque'        => $request->marque,
             'modele'        => $request->modele,
             'vehicle_image' => $imagePath ? asset('storage/' . $imagePath) : null,
@@ -118,6 +120,7 @@ class ParkingSessionController extends Controller
                 'parking_name'  => $parking->name,
                 'parking_ref'   => $parking->reference,
                 'license_plate' => $session->license_plate,
+                'phone'         => $session->phone,
                 'marque'        => $session->marque,
                 'modele'        => $session->modele,
                 'vehicle_image' => $session->vehicle_image,
@@ -375,8 +378,9 @@ class ParkingSessionController extends Controller
 
         $totalMontant   = $sessions->sum('amount');
         $totalSessions  = $sessions->count();
-        $totalReverse   = $sessions->whereNotNull('reversement_id')->sum('amount');
-        $totalNonReverse = $sessions->whereNull('reversement_id')->sum('amount');
+        $versementIds   = $sessions->pluck('versement_id')->filter()->unique();
+        $totalReverse   = \App\Models\Versement::whereIn('id', $versementIds)->sum('paid_amount');
+        $totalNonReverse = max(0, $totalMontant - $totalReverse);
 
         return response()->json([
             'sessions' => $sessions->values(),
@@ -415,11 +419,35 @@ class ParkingSessionController extends Controller
 
     private function queryReportSessions(int $userId, Carbon $from, Carbon $to)
     {
-        return ParkingSession::with('parking')
-            ->where('closed_by', $userId)
-            ->where('status', 'released')
-            ->whereBetween('ended_at', [$from, $to])
-            ->orderByDesc('ended_at')
+        $parkingIds = \Illuminate\Support\Facades\DB::table('user_parkings')
+            ->where('user_id', $userId)
+            ->pluck('parking_id')
+            ->toArray();
+
+        return ParkingSession::with(['parking', 'versement', 'agent', 'closer'])
+            ->where(function ($q) use ($userId, $from, $to, $parkingIds) {
+                // Sessions clôturées par ce caissier dans la période
+                $q->where(function ($sq) use ($userId, $from, $to) {
+                    $sq->where('closed_by', $userId)
+                       ->where('status', 'released')
+                       ->where(function ($vq) use ($from, $to) {
+                           $vq->whereHas('versement', function ($inner) use ($from, $to) {
+                               $inner->whereBetween('created_at', [$from, $to]);
+                           })
+                           ->orWhere(function ($inner) use ($from, $to) {
+                               $inner->whereNull('versement_id')
+                                     ->whereBetween('ended_at', [$from, $to]);
+                           });
+                       });
+                })
+                // OU Sessions en cours dans la période, pour les parkings affectés à ce caissier
+                ->orWhere(function ($sq) use ($from, $to, $parkingIds) {
+                    $sq->where('status', 'occupied')
+                       ->whereBetween('started_at', [$from, $to])
+                       ->whereIn('parking_id', $parkingIds);
+                });
+            })
+            ->orderByDesc('started_at')
             ->get()
             ->map(fn($s) => [
                 'id'               => $s->id,
@@ -429,9 +457,13 @@ class ParkingSessionController extends Controller
                 'started_at'       => $s->started_at?->format('Y-m-d H:i:s'),
                 'ended_at'         => $s->ended_at?->format('Y-m-d H:i:s'),
                 'duration_minutes' => $s->duration_minutes ?? null,
-                'amount'           => $s->amount,
-                'reversement_id'   => $s->reversement_id,
+                'amount'           => $s->amount ?? 0.0,
+                'versement_id'     => $s->versement_id,
                 'parking_name'     => $s->parking?->name ?? '—',
+                'agent_entry_name' => $s->agent ? trim($s->agent->name . ' ' . ($s->agent->first_name ?? '')) : '—',
+                'agent_exit_name'  => $s->closer ? trim($s->closer->name . ' ' . ($s->closer->first_name ?? '')) : '—',
+                'status'           => $s->status,
+                'created_at'       => $s->created_at?->format('Y-m-d H:i:s'),
             ]);
     }
 
@@ -448,12 +480,17 @@ class ParkingSessionController extends Controller
         [$dateFrom, $dateTo] = $this->resolveReportDates($request);
         $sessions = $this->queryReportSessions($user->id, $dateFrom, $dateTo);
 
+        $totalMontant = $sessions->sum('amount');
+        $versementIds = $sessions->pluck('versement_id')->filter()->unique();
+        $totalReverse = \App\Models\Versement::whereIn('id', $versementIds)->sum('paid_amount');
+        $totalNonReverse = max(0, $totalMontant - $totalReverse);
+
         $data = [
             'sessions'        => $sessions,
-            'totalMontant'    => $sessions->sum('amount'),
+            'totalMontant'    => $totalMontant,
             'totalSessions'   => $sessions->count(),
-            'totalReverse'    => $sessions->whereNotNull('reversement_id')->sum('amount'),
-            'totalNonReverse' => $sessions->whereNull('reversement_id')->sum('amount'),
+            'totalReverse'    => $totalReverse,
+            'totalNonReverse' => $totalNonReverse,
             'caissier'        => $user->name . ' ' . ($user->first_name ?? ''),
             'dateFrom'        => $dateFrom->format('d/m/Y'),
             'dateTo'          => $dateTo->format('d/m/Y'),

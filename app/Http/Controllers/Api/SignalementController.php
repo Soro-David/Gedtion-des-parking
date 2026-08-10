@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Driver;
 use App\Models\Parking;
 use App\Models\ParkingSession;
 use App\Models\Signalement;
 use App\Services\FcmNotificationService;
+use App\Services\SmsNotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -22,6 +24,8 @@ class SignalementController extends Controller
             'parking_id'    => 'required|exists:parkings,id',
             'license_plate' => 'required|string|max:50',
             'motif'         => 'required|string|max:1000',
+            'type'          => 'nullable|string|in:interne,proprietaire',
+            'phone'         => 'required_if:type,proprietaire|nullable|string|max:20',
         ]);
 
         $user = auth()->user();
@@ -34,12 +38,17 @@ class SignalementController extends Controller
             ], 403);
         }
 
+        $type = $request->input('type', 'interne');
+
         // Créer le signalement
         $signalement = Signalement::create([
             'user_id'       => $user->id,
             'parking_id'    => $request->parking_id,
             'license_plate' => ParkingSession::normalizeLicensePlate($request->license_plate),
             'motif'         => $request->motif,
+            'type'          => $type,
+            'phone'         => $request->phone,
+            'sms_status'    => ($type === 'proprietaire') ? 'pending' : null,
         ]);
 
         $parking = Parking::findOrFail($request->parking_id);
@@ -49,31 +58,44 @@ class SignalementController extends Controller
             'user_id'         => $user->id,
             'parking_id'      => $parking->id,
             'license_plate'   => $signalement->license_plate,
+            'type'            => $type,
         ]);
 
-        // Envoyer la notification FCM à tous les agents et caissiers du même parking (sauf le créateur)
-        try {
-            $recipients = $parking->users()
-                ->whereIn('role', ['attendant', 'caissier'])
-                ->where('users.id', '!=', $user->id)
-                ->pluck('users.id')
-                ->toArray();
-
-            if (!empty($recipients)) {
-                app(FcmNotificationService::class)->sendToUsers(
-                    $recipients,
-                    'Nouveau signalement',
-                    "Un véhicule a été signalé dans le parking {$parking->name} par {$user->name}.",
-                    [
-                        'type'       => 'rapport',
-                        'id'         => (string) $signalement->id,
-                        'parking_id' => (string) $parking->id,
-                    ],
-                    'rapport'
-                );
+        if ($type === 'proprietaire') {
+            // Préparer et envoyer/simuler le SMS au propriétaire
+            try {
+                app(SmsNotificationService::class)->dispatchOwnerSms($signalement);
+            } catch (\Exception $e) {
+                Log::error('[SMS Signalement] Erreur lors de la préparation/envoi du SMS', [
+                    'error' => $e->getMessage(),
+                    'signalement_id' => $signalement->id,
+                ]);
             }
-        } catch (\Exception $e) {
-            Log::warning('[FCM Signalement] Erreur envoi notification signalement', ['error' => $e->getMessage()]);
+        } else {
+            // Envoyer la notification FCM à tous les agents et caissiers du même parking (sauf le créateur)
+            try {
+                $recipients = $parking->users()
+                    ->whereIn('role', ['attendant', 'caissier'])
+                    ->where('users.id', '!=', $user->id)
+                    ->pluck('users.id')
+                    ->toArray();
+
+                if (!empty($recipients)) {
+                    app(FcmNotificationService::class)->sendToUsers(
+                        $recipients,
+                        'Nouveau signalement',
+                        "Un véhicule a été signalé dans le parking {$parking->name} par {$user->name}.",
+                        [
+                            'type'       => 'rapport',
+                            'id'         => (string) $signalement->id,
+                            'parking_id' => (string) $parking->id,
+                        ],
+                        'rapport'
+                    );
+                }
+            } catch (\Exception $e) {
+                Log::warning('[FCM Signalement] Erreur envoi notification signalement', ['error' => $e->getMessage()]);
+            }
         }
 
         return response()->json([
@@ -143,6 +165,40 @@ class SignalementController extends Controller
         return response()->json([
             'success' => true,
             'data'    => $signalement,
+        ]);
+    }
+
+    /**
+     * Récupère le numéro de téléphone et le nom du propriétaire d'un véhicule à partir de sa plaque.
+     */
+    public function getVehicleOwnerPhone(Request $request): JsonResponse
+    {
+        $request->validate([
+            'license_plate' => 'required|string',
+        ]);
+
+        $licensePlate = ParkingSession::normalizeLicensePlate($request->license_plate);
+
+        $driver = Driver::where('license_plate', $licensePlate)->with('user')->first();
+
+        $phone = $driver?->user?->phone;
+        $name = $driver?->user?->name;
+
+        // Si aucun numéro n'est trouvé via Driver, on cherche dans les sessions de stationnement
+        if (empty($phone)) {
+            $session = ParkingSession::where('license_plate', $licensePlate)
+                ->orderBy('started_at', 'desc')
+                ->first();
+            if ($session && !empty($session->phone)) {
+                $phone = $session->phone;
+                $name = 'Propriétaire'; // Libellé par défaut si on n'a que le numéro
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'phone'   => $phone,
+            'name'    => $name,
         ]);
     }
 }

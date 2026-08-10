@@ -104,7 +104,7 @@
                 <td>{{ isset($s['duration_minutes']) ? $s['duration_minutes'] . ' min' : '—' }}</td>
                 <td style="text-align:right"><strong>{{ number_format($s['amount'], 0, ',', ' ') }} FCFA</strong></td>
                 <td style="text-align:center">
-                    @if($s['reversement_id'])
+                    @if($s['versement_id'])
                         <span class="badge badge-oui">Oui</span>
                     @else
                         <span class="badge badge-non">Non</span>

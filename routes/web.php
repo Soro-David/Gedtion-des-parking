@@ -199,9 +199,9 @@ Route::middleware('auth')->group(function () {
             Route::get('attendants/{attendant}/edit', [AttendantController::class, 'edit'])->name('attendants.edit');
             Route::put('attendants/{attendant}', [AttendantController::class, 'update'])->name('attendants.update');
             Route::delete('attendants/{attendant}', [AttendantController::class, 'destroy'])->name('attendants.destroy');
-            Route::get('caissiers', [CaissierController::class, 'index'])->name('caissiers.index');
-            Route::get('caissiers/create', [CaissierController::class, 'create'])->name('caissiers.create');
-            Route::post('caissiers', [CaissierController::class, 'store'])->name('caissiers.store');
+            Route::get('caissiers', [SupervisorCaissierController::class, 'index'])->name('caissiers.index');
+            Route::get('caissiers/create', [SupervisorCaissierController::class, 'create'])->name('caissiers.create');
+            Route::post('caissiers', [SupervisorCaissierController::class, 'store'])->name('caissiers.store');
             Route::get('caissiers/{caissier}', [SupervisorCaissierController::class, 'show'])->name('caissiers.show');
             Route::get('caissiers/{caissier}/edit', [SupervisorCaissierController::class, 'edit'])->name('caissiers.edit');
             Route::put('caissiers/{caissier}', [SupervisorCaissierController::class, 'update'])->name('caissiers.update');

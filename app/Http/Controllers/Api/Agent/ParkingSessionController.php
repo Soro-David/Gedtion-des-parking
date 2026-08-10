@@ -23,6 +23,7 @@ class ParkingSessionController extends Controller
         $request->validate([
             'parking_id'    => 'required|exists:parkings,id',
             'license_plate' => 'required|string|max:20',
+            'phone'         => 'nullable|string|max:20',
             'marque'        => 'nullable|string|max:100',
             'modele'        => 'nullable|string|max:100',
             'vehicle_image' => 'nullable|image|max:5120',
@@ -70,6 +71,7 @@ class ParkingSessionController extends Controller
         $session = ParkingSession::create([
             'parking_id'    => $parking->id,
             'license_plate' => $normalizedPlate,
+            'phone'         => $request->phone,
             'marque'        => $request->marque,
             'modele'        => $request->modele,
             'vehicle_image' => $imagePath ? asset('storage/' . $imagePath) : null,
@@ -118,6 +120,7 @@ class ParkingSessionController extends Controller
                 'parking_name'  => $parking->name,
                 'parking_ref'   => $parking->reference,
                 'license_plate' => $session->license_plate,
+                'phone'         => $session->phone,
                 'marque'        => $session->marque,
                 'modele'        => $session->modele,
                 'vehicle_image' => $session->vehicle_image,

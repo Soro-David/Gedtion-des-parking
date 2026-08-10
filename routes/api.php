@@ -144,6 +144,7 @@ Route::prefix('notifications')
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/vehicles/search', [SignalementController::class, 'searchVehicles']);
+    Route::get('/signalements/owner-phone', [SignalementController::class, 'getVehicleOwnerPhone']);
     Route::post('/signalements', [SignalementController::class, 'store']);
     Route::get('/signalements', [SignalementController::class, 'index']);
     Route::get('/signalements/{id}', [SignalementController::class, 'show']);

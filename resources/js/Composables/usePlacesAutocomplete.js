@@ -64,7 +64,7 @@ export function usePlacesAutocomplete() {
             try {
                 await initServices();
                 autocompleteService.getPlacePredictions(
-                    { input: q, language: 'fr' },
+                    { input: q, language: 'fr', componentRestrictions: { country: 'ci' } },
                     (predictions, status) => {
                         isSearching.value = false;
                         if (

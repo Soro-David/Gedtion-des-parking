@@ -5,7 +5,7 @@ import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
 import InputError from '@/Components/InputError.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { useReverseGeocode } from '@/Composables/useReverseGeocode';
 import { usePlacesAutocomplete } from '@/Composables/usePlacesAutocomplete';
 import GoogleMapPicker from '@/Components/GoogleMapPicker.vue';
@@ -37,10 +37,17 @@ const geoStatus = ref('');
 const { locationName, reverseGeocode } = useReverseGeocode();
 const { searchQuery, suggestions, showSuggestions, isSearching, onInput, selectSuggestion, clearSuggestions } = usePlacesAutocomplete();
 
+watch(locationName, (newAddress) => {
+    if (newAddress) {
+        form.address = newAddress;
+    }
+});
+
 async function pickSuggestion(place) {
-    const { lat, lng } = await selectSuggestion(place);
+    const { lat, lng, address } = await selectSuggestion(place);
     form.latitude  = lat;
     form.longitude = lng;
+    form.address   = address;
     geoStatus.value = `Position sélectionnée : ${lat}, ${lng}`;
     reverseGeocode(lat, lng);
 }
@@ -164,11 +171,7 @@ const submit = () => {
                             <InputError :message="form.errors.name" />
                         </div>
 
-                        <div>
-                            <InputLabel for="address" value="Adresse physique" />
-                            <TextInput id="address" v-model="form.address" type="text" class="mt-1 block w-full" required />
-                            <InputError :message="form.errors.address" />
-                        </div>
+
                     </div>
 
                     <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 space-y-5">
@@ -375,6 +378,7 @@ const submit = () => {
                         <input type="hidden" v-model="form.longitude" />
                         <InputError :message="form.errors.latitude" />
                         <InputError :message="form.errors.longitude" />
+                        <InputError :message="form.errors.address" />
 
                         <p class="text-xs text-gray-400 italic">Cliquez sur la carte, utilisez votre position, ou collez un lien Google Maps.</p>
                     </div>

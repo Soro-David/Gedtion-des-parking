@@ -24,8 +24,9 @@ class RapportController extends Controller
 
         $totalMontant   = $sessions->sum('amount');
         $totalSessions  = $sessions->count();
-        $totalReversé   = $sessions->whereNotNull('reversement_id')->sum('amount');
-        $totalNonReversé = $sessions->whereNull('reversement_id')->sum('amount');
+        $versementIds   = $sessions->pluck('versement_id')->filter()->unique();
+        $totalReversé   = \App\Models\Versement::whereIn('id', $versementIds)->sum('paid_amount');
+        $totalNonReversé = max(0, $totalMontant - $totalReversé);
 
         return Inertia::render('Caissier/Rapport/Index', [
             'sessions'        => $sessions->values(),
@@ -50,12 +51,17 @@ class RapportController extends Controller
         [$dateFrom, $dateTo] = $this->resolveDates($request);
         $sessions = $this->querySessions($user->id, $dateFrom, $dateTo);
 
+        $totalMontant = $sessions->sum('amount');
+        $versementIds = $sessions->pluck('versement_id')->filter()->unique();
+        $totalReverse = \App\Models\Versement::whereIn('id', $versementIds)->sum('paid_amount');
+        $totalNonReverse = max(0, $totalMontant - $totalReverse);
+
         $data = [
             'sessions'        => $sessions,
-            'totalMontant'    => $sessions->sum('amount'),
+            'totalMontant'    => $totalMontant,
             'totalSessions'   => $sessions->count(),
-            'totalReverse'    => $sessions->whereNotNull('reversement_id')->sum('amount'),
-            'totalNonReverse' => $sessions->whereNull('reversement_id')->sum('amount'),
+            'totalReverse'    => $totalReverse,
+            'totalNonReverse' => $totalNonReverse,
             'caissier'        => $user->name . ' ' . ($user->first_name ?? ''),
             'dateFrom'        => $dateFrom->format('d/m/Y'),
             'dateTo'          => $dateTo->format('d/m/Y'),
@@ -109,7 +115,7 @@ class RapportController extends Controller
                     $s['ended_at']   ?? '',
                     $s['duration_minutes'] ?? '',
                     $s['amount'],
-                    $s['reversement_id'] ? 'Oui' : 'Non',
+                    $s['versement_id'] ? 'Oui' : 'Non',
                 ], ';');
             }
 
@@ -142,10 +148,18 @@ class RapportController extends Controller
 
     private function querySessions(int $userId, Carbon $from, Carbon $to)
     {
-        return ParkingSession::with('parking')
+        return ParkingSession::with(['parking', 'versement'])
             ->where('closed_by', $userId)
             ->where('status', 'released')
-            ->whereBetween('ended_at', [$from, $to])
+            ->where(function ($q) use ($from, $to) {
+                $q->whereHas('versement', function ($vq) use ($from, $to) {
+                    $vq->whereBetween('created_at', [$from, $to]);
+                })
+                ->orWhere(function ($sq) use ($from, $to) {
+                    $sq->whereNull('versement_id')
+                       ->whereBetween('ended_at', [$from, $to]);
+                });
+            })
             ->orderByDesc('ended_at')
             ->get()
             ->map(fn($s) => [
@@ -157,7 +171,7 @@ class RapportController extends Controller
                 'ended_at'         => $s->ended_at?->format('d/m/Y H:i'),
                 'duration_minutes' => $s->duration_minutes ?? null,
                 'amount'           => $s->amount,
-                'reversement_id'   => $s->reversement_id,
+                'versement_id'     => $s->versement_id,
                 'parking'          => $s->parking?->name ?? '—',
             ]);
     }

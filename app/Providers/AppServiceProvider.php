@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use App\Services\Contracts\OcrProviderInterface;
+use App\Services\Contracts\SmsProviderInterface;
 use App\Services\PlateRecognizerService;
+use App\Services\Sms\LogSmsProvider;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Vite;
@@ -24,6 +26,15 @@ class AppServiceProvider extends ServiceProvider
                 'platerecognizer' => $app->make(PlateRecognizerService::class),
                 // Possibilité de mapper d'autres services (e.g. Gemini/Claude) à l'avenir
                 default => $app->make(PlateRecognizerService::class),
+            };
+        });
+
+        $this->app->bind(SmsProviderInterface::class, function ($app) {
+            $driver = config('services.sms.driver', 'log');
+
+            return match ($driver) {
+                'log' => $app->make(LogSmsProvider::class),
+                default => $app->make(LogSmsProvider::class),
             };
         });
     }
