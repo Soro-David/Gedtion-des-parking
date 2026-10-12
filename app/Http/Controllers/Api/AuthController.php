@@ -73,6 +73,13 @@ class AuthController extends Controller
                 'phone'      => $user->phone,
                 'address'    => $user->address,
                 'avatar_url' => $user->avatar_url,
+                'parkings'   => $user->parkings->map(fn($p) => [
+                    'id'              => $p->id,
+                    'name'            => $p->name,
+                    'reference'       => $p->reference,
+                    'capacity'        => $p->capacity,
+                    'available_spots' => $p->available_spots,
+                ]),
             ],
         ]);
     }
@@ -118,6 +125,13 @@ class AuthController extends Controller
                 'address'    => $user->address,
                 'role'       => $user->role,
                 'avatar_url' => $user->avatar_url,
+                'parkings'   => $user->parkings->map(fn($p) => [
+                    'id'              => $p->id,
+                    'name'            => $p->name,
+                    'reference'       => $p->reference,
+                    'capacity'        => $p->capacity,
+                    'available_spots' => $p->available_spots,
+                ]),
             ],
             'profile' => $profile,
         ]);
@@ -174,6 +188,13 @@ class AuthController extends Controller
                 'address'    => $user->address,
                 'role'       => $user->role,
                 'avatar_url' => $user->avatar_url,
+                'parkings'   => $user->parkings->map(fn($p) => [
+                    'id'              => $p->id,
+                    'name'            => $p->name,
+                    'reference'       => $p->reference,
+                    'capacity'        => $p->capacity,
+                    'available_spots' => $p->available_spots,
+                ]),
             ],
             'profile' => $profile,
         ]);

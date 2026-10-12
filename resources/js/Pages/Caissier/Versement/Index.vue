@@ -102,7 +102,7 @@ const totalDette    = computed(() => props.versements.length ? (props.versements
                             <tr class="bg-gray-50 text-xs text-gray-500 uppercase tracking-widest font-bold">
                                 <th class="px-5 py-3 text-left">Date</th>
                                 <th class="px-5 py-3 text-right">Encaissé</th>
-                                <th class="px-5 py-3 text-right">Dette préc.</th>
+                                <th class="px-5 py-3 text-right">Dette</th>
                                 <th class="px-5 py-3 text-right">Total dû</th>
                                 <th class="px-5 py-3 text-right">Versé</th>
                                 <th class="px-5 py-3 text-right">Reste</th>

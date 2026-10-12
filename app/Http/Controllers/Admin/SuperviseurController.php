@@ -100,10 +100,11 @@ class SuperviseurController extends Controller
 
     public function edit(string $id)
     {
-        $supervisor = User::findOrFail($id);
+        $supervisor = User::with('parkings')->findOrFail($id);
 
         return Inertia::render('Admin/Superviseur/Edit', [
             'supervisor' => $supervisor,
+            'parkings'   => $this->activeParkings(),
         ]);
     }
 
@@ -120,6 +121,8 @@ class SuperviseurController extends Controller
             'emergency_contact'      => 'nullable|string|max:20',
             'emergency_relationship' => 'nullable|string|max:50',
             'emergency_name'         => 'nullable|string|max:255',
+            'parking_ids'            => 'nullable|array',
+            'parking_ids.*'          => 'exists:parkings,id',
         ]);
 
         $supervisor->update($request->only([
@@ -127,8 +130,23 @@ class SuperviseurController extends Controller
             'emergency_contact', 'emergency_relationship', 'emergency_name',
         ]));
 
-        return redirect()->route('admin.superviseur.index')
+        $supervisor->parkings()->sync($request->parking_ids ?? []);
+
+        return redirect()->route('admin.users.index')
             ->with('success', 'Superviseur mis à jour avec succès.');
+    }
+
+    private function activeParkings(): array
+    {
+        return \App\Models\Parking::where('is_active', true)
+            ->get(['id', 'name', 'reference', 'capacity'])
+            ->map(fn ($p) => [
+                'id'              => $p->id,
+                'name'            => $p->name,
+                'reference'       => $p->reference,
+                'capacity'        => $p->capacity,
+                'available_spots' => $p->available_spots,
+            ])->toArray();
     }
 
     public function destroy(string $id)

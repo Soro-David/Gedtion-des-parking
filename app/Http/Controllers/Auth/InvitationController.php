@@ -57,8 +57,36 @@ class InvitationController extends Controller
             $updateData['avatar'] = $avatarPath;
         }
 
+        $email = $user->email;
+        $name = trim($user->name . ' ' . $user->first_name);
+        $role = $user->role;
+
         $user->update($updateData);
 
-        return redirect()->route('login')->with('status', 'Mot de passe défini avec succès. Vous pouvez maintenant vous connecter.');
+        return redirect()->route('invitation.success', [
+            'email' => $email,
+            'name'  => $name,
+            'role'  => $role,
+        ]);
+    }
+
+    /**
+     * Show confirmation page and trigger deep link to mobile app.
+     */
+    public function success(Request $request)
+    {
+        $email = $request->query('email', '');
+        $name  = $request->query('name', '');
+        $role  = $request->query('role', '');
+
+        $deepLinkUrl = 'parkingapp://login?email=' . urlencode($email);
+
+        return Inertia::render('Auth/InvitationSuccess', [
+            'email'       => $email,
+            'name'        => $name,
+            'role'        => $role,
+            'deepLinkUrl' => $deepLinkUrl,
+            'apkUrl'      => config('app.mobile_apk_url', ''),
+        ]);
     }
 }

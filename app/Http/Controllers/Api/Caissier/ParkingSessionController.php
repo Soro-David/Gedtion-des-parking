@@ -17,117 +17,13 @@ class ParkingSessionController extends Controller
 {
     /**
      * Enregistrer une nouvelle entrée de véhicule (Check-in).
+     * Les caissiers ne sont pas autorisés à enregistrer les entrées de véhicules.
      */
     public function store(Request $request)
     {
-        $request->validate([
-            'parking_id'    => 'required|exists:parkings,id',
-            'license_plate' => 'required|string|max:20',
-            'phone'         => 'nullable|string|max:20',
-            'marque'        => 'nullable|string|max:100',
-            'modele'        => 'nullable|string|max:100',
-            'vehicle_image' => 'nullable|image|max:5120',
-        ]);
-
-        $user = auth()->user();
-
-        // Vérifier que le parking est affecté au caissier
-        $assignedIds = $user->parkings()->pluck('parkings.id')->toArray();
-        if (!in_array((int)$request->parking_id, $assignedIds)) {
-            Log::warning('API Caissier - Accès non autorisé au parking', [
-                'parking_id' => $request->parking_id,
-                'caissier_id' => $user->id,
-            ]);
-            return response()->json([
-                'message' => 'Ce parking ne vous est pas affecté.'
-            ], 403);
-        }
-
-        $parking = Parking::findOrFail($request->parking_id);
-
-        if ($parking->available_spots <= 0) {
-            Log::warning('API Caissier - Tentative de stationnement sur parking complet', [
-                'parking_id'  => $parking->id,
-                'caissier_id' => $user->id,
-            ]);
-            return response()->json([
-                'message' => "Ce parking n'a plus de places disponibles."
-            ], 422);
-        }
-
-        $normalizedPlate = ParkingSession::normalizeLicensePlate($request->license_plate);
-
-        if (ParkingSession::hasActiveForLicensePlate($normalizedPlate)) {
-            return response()->json([
-                'message' => 'Ce véhicule a déjà un stationnement actif.'
-            ], 422);
-        }
-
-        $imagePath = null;
-        if ($request->hasFile('vehicle_image')) {
-            $imagePath = $request->file('vehicle_image')->store('vehicle-images', 'public');
-        }
-
-        $session = ParkingSession::create([
-            'parking_id'    => $parking->id,
-            'license_plate' => $normalizedPlate,
-            'phone'         => $request->phone,
-            'marque'        => $request->marque,
-            'modele'        => $request->modele,
-            'vehicle_image' => $imagePath ? asset('storage/' . $imagePath) : null,
-            'status'        => 'occupied',
-            'started_at'    => now(),
-            'created_by'    => $user->id,
-        ]);
-
-        Log::info('API Caissier - Session de stationnement enregistrée', [
-            'parking_id'    => $parking->id,
-            'license_plate' => $session->license_plate,
-            'caissier_id'   => $user->id,
-        ]);
-
-        // ✓ Notification FCM : informer tous les agents et caissiers du même parking
-        try {
-            $recipients = $parking->users()
-                ->whereIn('role', ['attendant', 'caissier'])
-                ->where('users.id', '!=', $user->id)
-                ->pluck('users.id')
-                ->toArray();
-
-            if (!empty($recipients)) {
-                app(FcmNotificationService::class)->sendToUsers(
-                    $recipients,
-                    'Nouveau véhicule enregistré',
-                    "Un véhicule vient d'être enregistré dans le parking {$parking->name} par {$user->name}.",
-                    [
-                        'type'       => 'entree',
-                        'id'         => (string) $session->id,
-                        'parking_id' => (string) $parking->id,
-                    ],
-                    'entree'
-                );
-            }
-        } catch (\Exception $e) {
-            Log::warning('[FCM Caissier] Erreur notification entrée collègues', ['error' => $e->getMessage()]);
-        }
-
         return response()->json([
-
-            'message' => 'Stationnement enregistré avec succès.',
-            'session' => [
-                'id'            => $session->id,
-                'parking_id'    => $session->parking_id,
-                'parking_name'  => $parking->name,
-                'parking_ref'   => $parking->reference,
-                'license_plate' => $session->license_plate,
-                'phone'         => $session->phone,
-                'marque'        => $session->marque,
-                'modele'        => $session->modele,
-                'vehicle_image' => $session->vehicle_image,
-                'status'        => $session->status,
-                'started_at'    => $session->started_at->toDateTimeString(),
-            ]
-        ], 201);
+            'message' => 'Les caissiers ne sont pas autorisés à enregistrer les entrées de véhicules. Cette action est exclusivement réservée aux agents de parking.'
+        ], 403);
     }
 
     /**
@@ -366,34 +262,46 @@ class ParkingSessionController extends Controller
     }
 
     /**
-     * Obtenir le rapport filtré des sessions clôturées par ce caissier.
+     * Obtenir le rapport filtré des sessions pour ce caissier (filtré optionnellement par agent).
      */
     public function reports(Request $request)
     {
         $user = auth()->user();
+        $parkingIds = \Illuminate\Support\Facades\DB::table('user_parkings')
+            ->where('user_id', $user->id)
+            ->pluck('parking_id')
+            ->toArray();
+
+        // Agents affectés aux parkings du caissier
+        $agents = User::where('role', User::ROLE_ATTENDANT)
+            ->where(function ($q) use ($parkingIds) {
+                $q->whereHas('parkings', fn ($pq) => $pq->whereIn('parkings.id', $parkingIds))
+                  ->orWhereHas('closedSessions', fn ($sq) => $sq->whereIn('parking_id', $parkingIds));
+            })
+            ->orderBy('name')
+            ->get(['id', 'name', 'first_name', 'email', 'unique_code']);
 
         [$dateFrom, $dateTo] = $this->resolveReportDates($request);
+        $agentId = $request->filled('agent_id') ? (int) $request->input('agent_id') : null;
 
-        $sessions = $this->queryReportSessions($user->id, $dateFrom, $dateTo);
-
-        $totalMontant   = $sessions->sum('amount');
-        $totalSessions  = $sessions->count();
-        $versementIds   = $sessions->pluck('versement_id')->filter()->unique();
-        $totalReverse   = \App\Models\Versement::whereIn('id', $versementIds)->sum('paid_amount');
-        $totalNonReverse = max(0, $totalMontant - $totalReverse);
+        $reportData = $this->queryReportData($parkingIds, $agentId, $dateFrom, $dateTo);
 
         return response()->json([
-            'sessions' => $sessions->values(),
-            'stats' => [
-                'total_montant'     => round($totalMontant, 2),
-                'total_sessions'    => $totalSessions,
-                'total_reverse'     => round($totalReverse, 2),
-                'total_non_reverse' => round($totalNonReverse, 2),
+            'agents'   => $agents,
+            'sessions' => $reportData['sessions'],
+            'stats'    => [
+                'total_entries'     => $reportData['totalEntries'],
+                'total_exits'       => $reportData['totalExits'],
+                'total_montant'     => round($reportData['totalMontant'], 2),
+                'total_sessions'    => count($reportData['sessions']),
+                'total_reverse'     => round($reportData['totalReverse'], 2),
+                'total_non_reverse' => round($reportData['totalNonReverse'], 2),
             ],
             'filters' => [
                 'periode'   => $request->input('periode', 'jour'),
                 'date_from' => $dateFrom->toDateString(),
                 'date_to'   => $dateTo->toDateString(),
+                'agent_id'  => $agentId ? (string) $agentId : '',
             ],
         ]);
     }
@@ -417,54 +325,74 @@ class ParkingSessionController extends Controller
         };
     }
 
-    private function queryReportSessions(int $userId, Carbon $from, Carbon $to)
+    private function queryReportData(array $parkingIds, ?int $agentId, Carbon $from, Carbon $to): array
     {
-        $parkingIds = \Illuminate\Support\Facades\DB::table('user_parkings')
-            ->where('user_id', $userId)
-            ->pluck('parking_id')
-            ->toArray();
+        // 1. Entrées enregistrées
+        $entriesQuery = ParkingSession::whereIn('parking_id', $parkingIds)
+            ->whereBetween('started_at', [$from, $to]);
+        if ($agentId) {
+            $entriesQuery->where('created_by', $agentId);
+        }
+        $totalEntries = $entriesQuery->count();
 
-        return ParkingSession::with(['parking', 'versement', 'agent', 'closer'])
-            ->where(function ($q) use ($userId, $from, $to, $parkingIds) {
-                // Sessions clôturées par ce caissier dans la période
-                $q->where(function ($sq) use ($userId, $from, $to) {
-                    $sq->where('closed_by', $userId)
-                       ->where('status', 'released')
-                       ->where(function ($vq) use ($from, $to) {
-                           $vq->whereHas('versement', function ($inner) use ($from, $to) {
-                               $inner->whereBetween('created_at', [$from, $to]);
-                           })
-                           ->orWhere(function ($inner) use ($from, $to) {
-                               $inner->whereNull('versement_id')
-                                     ->whereBetween('ended_at', [$from, $to]);
-                           });
-                       });
-                })
-                // OU Sessions en cours dans la période, pour les parkings affectés à ce caissier
-                ->orWhere(function ($sq) use ($from, $to, $parkingIds) {
-                    $sq->where('status', 'occupied')
-                       ->whereBetween('started_at', [$from, $to])
-                       ->whereIn('parking_id', $parkingIds);
-                });
-            })
-            ->orderByDesc('started_at')
-            ->get()
-            ->map(fn($s) => [
-                'id'               => $s->id,
-                'license_plate'    => $s->license_plate,
-                'marque'           => $s->marque,
-                'modele'           => $s->modele,
-                'started_at'       => $s->started_at?->format('Y-m-d H:i:s'),
-                'ended_at'         => $s->ended_at?->format('Y-m-d H:i:s'),
-                'duration_minutes' => $s->duration_minutes ?? null,
-                'amount'           => $s->amount ?? 0.0,
-                'versement_id'     => $s->versement_id,
-                'parking_name'     => $s->parking?->name ?? '—',
-                'agent_entry_name' => $s->agent ? trim($s->agent->name . ' ' . ($s->agent->first_name ?? '')) : '—',
-                'agent_exit_name'  => $s->closer ? trim($s->closer->name . ' ' . ($s->closer->first_name ?? '')) : '—',
-                'status'           => $s->status,
-                'created_at'       => $s->created_at?->format('Y-m-d H:i:s'),
-            ]);
+        // 2. Sorties effectuées
+        $exitsQuery = ParkingSession::whereIn('parking_id', $parkingIds)
+            ->where('status', 'released')
+            ->whereBetween('ended_at', [$from, $to]);
+        if ($agentId) {
+            $exitsQuery->where(function ($q) use ($agentId) {
+                $q->where('closed_by', $agentId)
+                  ->orWhere('created_by', $agentId);
+            });
+        }
+        $totalExits = $exitsQuery->count();
+
+        // 3. Sessions
+        $sessionsQuery = ParkingSession::with(['parking', 'versement', 'agent', 'closer'])
+            ->whereIn('parking_id', $parkingIds)
+            ->where(function ($q) use ($from, $to) {
+                $q->whereBetween('started_at', [$from, $to])
+                  ->orWhereBetween('ended_at', [$from, $to]);
+            });
+
+        if ($agentId) {
+            $sessionsQuery->where(function ($q) use ($agentId) {
+                $q->where('created_by', $agentId)
+                  ->orWhere('closed_by', $agentId);
+            });
+        }
+
+        $rawSessions = $sessionsQuery->orderByDesc('started_at')->get();
+
+        $totalMontant = $rawSessions->where('status', 'released')->sum('amount');
+        $totalReverse = $rawSessions->where('status', 'released')->whereNotNull('versement_id')->sum('amount');
+        $totalNonReverse = max(0, $totalMontant - $totalReverse);
+
+        $sessions = $rawSessions->map(fn($s) => [
+            'id'               => $s->id,
+            'license_plate'    => $s->license_plate,
+            'marque'           => $s->marque,
+            'modele'           => $s->modele,
+            'started_at'       => $s->started_at?->format('Y-m-d H:i:s'),
+            'ended_at'         => $s->ended_at?->format('Y-m-d H:i:s'),
+            'duration_minutes' => $s->duration_minutes ?? null,
+            'amount'           => (float) ($s->amount ?? 0.0),
+            'versement_id'     => $s->versement_id,
+            'parking_name'     => $s->parking?->name ?? '—',
+            'agent_entry_name' => $s->agent ? trim($s->agent->name . ' ' . ($s->agent->first_name ?? '')) : '—',
+            'agent_exit_name'  => $s->closer ? trim($s->closer->name . ' ' . ($s->closer->first_name ?? '')) : '—',
+            'status'           => $s->status,
+            'created_at'       => $s->created_at?->format('Y-m-d H:i:s'),
+        ])->values();
+
+        return [
+            'sessions'        => $sessions,
+            'totalEntries'    => $totalEntries,
+            'totalExits'      => $totalExits,
+            'totalMontant'    => $totalMontant,
+            'totalReverse'    => $totalReverse,
+            'totalNonReverse' => $totalNonReverse,
+        ];
     }
 
     /**
@@ -477,21 +405,30 @@ class ParkingSessionController extends Controller
             return response()->json(['message' => 'Non autorisé.'], 401);
         }
 
-        [$dateFrom, $dateTo] = $this->resolveReportDates($request);
-        $sessions = $this->queryReportSessions($user->id, $dateFrom, $dateTo);
+        $parkingIds = \Illuminate\Support\Facades\DB::table('user_parkings')
+            ->where('user_id', $user->id)
+            ->pluck('parking_id')
+            ->toArray();
 
-        $totalMontant = $sessions->sum('amount');
-        $versementIds = $sessions->pluck('versement_id')->filter()->unique();
-        $totalReverse = \App\Models\Versement::whereIn('id', $versementIds)->sum('paid_amount');
-        $totalNonReverse = max(0, $totalMontant - $totalReverse);
+        [$dateFrom, $dateTo] = $this->resolveReportDates($request);
+        $agentId = $request->filled('agent_id') ? (int) $request->input('agent_id') : null;
+
+        $selectedAgent = $agentId ? User::find($agentId) : null;
+        $agentLabel = $selectedAgent
+            ? trim($selectedAgent->name . ' ' . ($selectedAgent->first_name ?? ''))
+            : 'Tous les agents';
+
+        $reportData = $this->queryReportData($parkingIds, $agentId, $dateFrom, $dateTo);
 
         $data = [
-            'sessions'        => $sessions,
-            'totalMontant'    => $totalMontant,
-            'totalSessions'   => $sessions->count(),
-            'totalReverse'    => $totalReverse,
-            'totalNonReverse' => $totalNonReverse,
-            'caissier'        => $user->name . ' ' . ($user->first_name ?? ''),
+            'sessions'        => $reportData['sessions'],
+            'totalEntries'    => $reportData['totalEntries'],
+            'totalExits'      => $reportData['totalExits'],
+            'totalMontant'    => $reportData['totalMontant'],
+            'totalReverse'    => $reportData['totalReverse'],
+            'totalNonReverse' => $reportData['totalNonReverse'],
+            'caissier'        => trim($user->name . ' ' . ($user->first_name ?? '')),
+            'agentLabel'      => $agentLabel,
             'dateFrom'        => $dateFrom->format('d/m/Y'),
             'dateTo'          => $dateTo->format('d/m/Y'),
             'generatedAt'     => now()->format('d/m/Y H:i'),
@@ -513,8 +450,16 @@ class ParkingSessionController extends Controller
             return response()->json(['message' => 'Non autorisé.'], 401);
         }
 
+        $parkingIds = \Illuminate\Support\Facades\DB::table('user_parkings')
+            ->where('user_id', $user->id)
+            ->pluck('parking_id')
+            ->toArray();
+
         [$dateFrom, $dateTo] = $this->resolveReportDates($request);
-        $sessions = $this->queryReportSessions($user->id, $dateFrom, $dateTo);
+        $agentId = $request->filled('agent_id') ? (int) $request->input('agent_id') : null;
+
+        $reportData = $this->queryReportData($parkingIds, $agentId, $dateFrom, $dateTo);
+        $sessions   = $reportData['sessions'];
 
         $filename = "rapport-caissier-{$dateFrom->format('Ymd')}-{$dateTo->format('Ymd')}.csv";
 
@@ -532,10 +477,14 @@ class ParkingSessionController extends Controller
                 'Plaque',
                 'Marque',
                 'Modèle',
+                'Parking',
+                'Agent Entrée',
+                'Agent/Caissier Sortie',
                 'Entrée',
                 'Sortie',
                 'Durée (min)',
                 'Montant (FCFA)',
+                'Statut',
                 'Reversé',
             ], ';');
 
@@ -544,11 +493,15 @@ class ParkingSessionController extends Controller
                     $s['license_plate'],
                     $s['marque']    ?? '',
                     $s['modele']    ?? '',
+                    $s['parking_name'] ?? '—',
+                    $s['agent_entry_name'] ?? '—',
+                    $s['agent_exit_name'] ?? '—',
                     $s['started_at'] ?? '',
                     $s['ended_at']   ?? '',
                     $s['duration_minutes'] ?? '',
                     $s['amount'],
-                    $s['reversement_id'] ? 'Oui' : 'Non',
+                    $s['status'] === 'occupied' ? 'En cours' : 'Clôturé',
+                    $s['versement_id'] ? 'Oui' : 'Non',
                 ], ';');
             }
 

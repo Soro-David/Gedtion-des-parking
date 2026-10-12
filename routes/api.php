@@ -13,6 +13,14 @@ use App\Http\Controllers\Api\ParkingAiAssistantController;
 use App\Http\Controllers\Api\PlateRecognitionController;
 use App\Http\Controllers\Api\SignalementController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Public\PublicController;
+
+/*
+|--------------------------------------------------------------------------
+| Public Routes (Visitor)
+|--------------------------------------------------------------------------
+*/
+Route::get('/parkings', [PublicController::class, 'accueilApi']);
 
 /*
 |--------------------------------------------------------------------------

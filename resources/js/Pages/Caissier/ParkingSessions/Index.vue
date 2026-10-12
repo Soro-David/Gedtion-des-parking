@@ -46,17 +46,18 @@ const formatDate = (dt) => {
         <!-- En-tête -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
             <div>
-                <h2 class="text-2xl font-bold text-gray-900 tracking-tight">Stationnements enregistrés</h2>
-                <p class="text-sm text-gray-500 mt-1">Liste des véhicules stationnés que vous avez enregistrés.</p>
+                <h2 class="text-2xl font-bold text-gray-900 tracking-tight">Stationnements en cours</h2>
+                <p class="text-sm text-gray-500 mt-1">Véhicules actuellement stationnés dans vos parkings affectés.</p>
             </div>
-            <!-- <PrimaryLinkButton :href="route('caissier.parking-sessions.create')" label="Enregistrer un stationnement" /> -->
-
-            <PrimaryLinkButton
-                :href="route('caissier.parking-sessions.create')" 
-                label="+ Enregistrer un stationnement"
+            <Link
+                :href="route('caissier.checkout')"
+                class="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#487119] text-white text-sm font-bold shadow-sm hover:bg-[#3d5e15] transition-all"
             >
-                <FontAwesomeIcon :icon="['fas', 'plus']" class="h-4 w-4" />
-            </PrimaryLinkButton>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                </svg>
+                Enregistrer une sortie
+            </Link>
         </div>
 
         <!-- Table -->

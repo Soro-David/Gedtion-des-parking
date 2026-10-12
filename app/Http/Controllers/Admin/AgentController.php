@@ -134,6 +134,8 @@ class AgentController extends Controller
             'emergency_contact'      => 'nullable|string|max:20',
             'emergency_relationship' => 'nullable|string|max:50',
             'emergency_name'         => 'nullable|string|max:255',
+            'parking_ids'            => 'nullable|array',
+            'parking_ids.*'          => 'exists:parkings,id',
         ]);
 
         $agent->update($request->only([
@@ -148,7 +150,7 @@ class AgentController extends Controller
             'updated_by' => auth()->id(),
         ]);
 
-        return redirect()->route('admin.agent.index')->with('success', 'Agent mis à jour avec succès.');
+        return redirect()->route('admin.users.index')->with('success', 'Agent mis à jour avec succès.');
     }
 
     /**

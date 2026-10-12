@@ -57,7 +57,7 @@ const roleOptions = [
 ];
 
 const needsParking = computed(() =>
-    form.role === 'attendant' || form.role === 'caissier'
+    form.role === 'attendant' || form.role === 'caissier' || form.role === 'supervisor'
 );
 
 const selectedRole = computed(() => roleOptions.find(r => r.key === form.role));

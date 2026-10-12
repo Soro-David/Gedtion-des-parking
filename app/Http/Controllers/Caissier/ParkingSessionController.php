@@ -14,13 +14,15 @@ class ParkingSessionController extends Controller
 {
     public function index()
     {
+        $user = auth()->user();
+        $parkingIds = $user->parkings()->pluck('parkings.id');
+
         $sessions = ParkingSession::with('parking', 'agent')
-            ->where('created_by', auth()->id())
-            ->where('status', '!=', 'released')
-            ->latest()
+            ->whereIn('parking_id', $parkingIds)
+            ->where('status', 'occupied')
+            ->latest('started_at')
             ->get();
 
-            // dd($sessions);
         return Inertia::render('Caissier/ParkingSessions/Index', [
             'sessions' => $sessions,
         ]);
@@ -28,94 +30,14 @@ class ParkingSessionController extends Controller
 
     public function create()
     {
-        $parkings = auth()->user()->parkings()
-            ->get(['parkings.id', 'parkings.name', 'parkings.reference', 'parkings.capacity', 'parkings.is_active'])
-            ->map(function ($parking) {
-                return [
-                    'id'              => $parking->id,
-                    'name'            => $parking->name,
-                    'reference'       => $parking->reference,
-                    'capacity'        => $parking->capacity,
-                    'is_active'       => (bool) $parking->is_active,
-                    'available_spots' => $parking->available_spots,
-                ];
-            });
-
-        return Inertia::render('Caissier/ParkingSessions/Create', [
-            'parkings' => $parkings,
-        ]);
+        return redirect()->route('caissier.parking-sessions.index')
+            ->with('error', 'L\'enregistrement des entrées de véhicules est exclusivement réservé aux agents de parking.');
     }
 
     public function store(Request $request)
     {
-        $request->validate([
-            'parking_id'    => 'required|exists:parkings,id',
-            'license_plate' => 'required|string|max:20',
-            'marque'        => 'nullable|string|max:100',
-            'modele'        => 'nullable|string|max:100',
-            'vehicle_image' => 'nullable|image|max:5120',
-        ]);
-
-        // Vérifier que le parking appartient bien aux parkings affectés au caissier
-        $assignedIds = auth()->user()->parkings()->pluck('parkings.id')->toArray();
-        if (! in_array((int) $request->parking_id, $assignedIds)) {
-            Log::warning('Accès non autorisé au parking (caissier)', [
-                'parking_id' => $request->parking_id,
-                'caissier_id' => auth()->id(),
-            ]);
-            return back()->withErrors(['parking_id' => 'Ce parking ne vous est pas affecté.']);
-        }
-
-        $parking = Parking::findOrFail($request->parking_id);
-
-        if (! $parking->is_active) {
-            Log::warning('Tentative d\'action sur un parking bloqué (caissier)', [
-                'parking_id'   => $parking->id,
-                'caissier_id'  => auth()->id(),
-            ]);
-
-            return back()->withErrors(['parking_id' => 'Ce parking est actuellement bloqué. Aucune action n\'est autorisée.']);
-        }
-
-        if ($parking->available_spots <= 0) {
-            Log::warning('Tentative de stationnement sur parking complet (caissier)', [
-                'parking_id'  => $parking->id,
-                'caissier_id' => auth()->id(),
-            ]);
-            return back()->withErrors(['parking_id' => 'Ce parking n\'a plus de places disponibles.']);
-        }
-
-        $normalizedPlate = ParkingSession::normalizeLicensePlate($request->license_plate);
-
-        if (ParkingSession::hasActiveForLicensePlate($normalizedPlate)) {
-            return back()->withErrors([
-                'license_plate' => 'Ce véhicule a déjà un stationnement actif.',
-            ])->withInput();
-        }
-
-        $imagePath = null;
-        if ($request->hasFile('vehicle_image')) {
-            $imagePath = $request->file('vehicle_image')->store('vehicle-images', 'public');
-        }
-
-        $session = ParkingSession::create([
-            'parking_id'    => $parking->id,
-            'license_plate' => $normalizedPlate,
-            'marque'        => $request->marque,
-            'modele'        => $request->modele,
-            'vehicle_image' => $imagePath,
-            'status'        => 'occupied',
-            'started_at'    => now(),
-            'created_by'    => auth()->id(),
-        ]);
-
-        Log::info('Session de stationnement enregistrée (caissier)', [
-            'parking_id'    => $parking->id,
-            'license_plate' => $normalizedPlate,
-            'caissier_id'   => auth()->id(),
-        ]);
-
-        return redirect()->route('caissier.parking-sessions.ticket', $session->id);
+        return redirect()->route('caissier.parking-sessions.index')
+            ->with('error', 'L\'enregistrement des entrées de véhicules est exclusivement réservé aux agents de parking.');
     }
 
     /**

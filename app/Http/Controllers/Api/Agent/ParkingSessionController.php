@@ -20,6 +20,14 @@ class ParkingSessionController extends Controller
      */
     public function store(Request $request)
     {
+        $user = auth()->user();
+        $assignedIds = $user->parkings()->pluck('parkings.id')->toArray();
+
+        // Si l'agent a exactement un parking affecté, on écrase le parking_id par celui-ci
+        if (count($assignedIds) === 1) {
+            $request->merge(['parking_id' => $assignedIds[0]]);
+        }
+
         $request->validate([
             'parking_id'    => 'required|exists:parkings,id',
             'license_plate' => 'required|string|max:20',
@@ -28,18 +36,20 @@ class ParkingSessionController extends Controller
             'modele'        => 'nullable|string|max:100',
             'vehicle_image' => 'nullable|image|max:5120',
         ]);
-
-        $user = auth()->user();
-
-        // Vérifier que le parking est affecté à l'agent
-        $assignedIds = $user->parkings()->pluck('parkings.id')->toArray();
         if (!in_array((int)$request->parking_id, $assignedIds)) {
             Log::warning('API Agent - Accès non autorisé au parking', [
                 'parking_id' => $request->parking_id,
                 'agent_id'   => $user->id,
             ]);
             return response()->json([
-                'message' => 'Ce parking ne vous est pas affecté.'
+                'message' => 'Ce parking ne vous est pas affecté.',
+                'assigned_parkings' => $user->parkings->map(fn($p) => [
+                    'id'              => $p->id,
+                    'name'            => $p->name,
+                    'reference'       => $p->reference,
+                    'capacity'        => $p->capacity,
+                    'available_spots' => $p->available_spots,
+                ]),
             ], 403);
         }
 

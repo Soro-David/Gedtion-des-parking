@@ -35,7 +35,11 @@ test('user can set password and upload avatar', function () {
     ]);
 
 
-    $response->assertRedirect(route('login'));
+    $response->assertRedirect(route('invitation.success', [
+        'email' => $user->email,
+        'name'  => trim($user->name . ' ' . $user->first_name),
+        'role'  => $user->role,
+    ]));
 
     $user->refresh();
 
@@ -46,4 +50,14 @@ test('user can set password and upload avatar', function () {
     $this->assertNotNull($user->avatar);
     
     Storage::disk('public')->assertExists($user->avatar);
+});
+
+test('invitation success screen can be rendered', function () {
+    $response = $this->get(route('invitation.success', [
+        'email' => 'test@example.com',
+        'name'  => 'Jean Dupont',
+        'role'  => 'attendant',
+    ]));
+
+    $response->assertStatus(200);
 });

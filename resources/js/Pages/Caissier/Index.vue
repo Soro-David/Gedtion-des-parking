@@ -1,11 +1,6 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
-import LicensePlateScanner from '@/Components/LicensePlateScanner.vue';
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 import { useAutoRefresh } from '@/Composables/useAutoRefresh.js';
 import Swal from 'sweetalert2';
@@ -49,29 +44,11 @@ const fmtDate = (dt) => {
     });
 };
 
-// ── Modal stationnement ──────────────────────────────────────────
-const showModal = ref(false);
-
 const assignedParkings = computed(() => props.parkings ?? []);
 const activeParkings = computed(() => assignedParkings.value.filter((parking) => parking.is_active));
 const blockedParkings = computed(() => assignedParkings.value.filter((parking) => !parking.is_active));
 const hasOnlyBlockedAssignedParkings = computed(() => activeParkings.value.length === 0 && blockedParkings.value.length > 0);
 const blockedParkingNames = computed(() => blockedParkings.value.map((parking) => parking.name).join(', '));
-
-const isSingleParking = computed(() => activeParkings.value.length === 1);
-const showParkingSelector = ref(false);
-
-const sessionForm = useForm({
-    parking_id:    '',
-    license_plate: '',
-    marque:        '',
-    modele:        '',
-    vehicle_image: null,
-});
-
-const selectedParking = computed(() =>
-    activeParkings.value.find((p) => p.id === Number(sessionForm.parking_id)) ?? null
-);
 
 const showBlockedParkingPopup = (parkingName = blockedParkingNames.value) => {
     Swal.fire({
@@ -82,46 +59,6 @@ const showBlockedParkingPopup = (parkingName = blockedParkingNames.value) => {
             : 'Ce parking est actuellement bloqué. Aucune action n\'est autorisée.',
         confirmButtonText: 'Compris',
         confirmButtonColor: '#dc2626',
-    });
-};
-
-const openModal = () => {
-    sessionForm.reset();
-    sessionForm.clearErrors();
-    if (hasOnlyBlockedAssignedParkings.value) {
-        showBlockedParkingPopup();
-        return;
-    }
-
-    if (activeParkings.value.length === 1) {
-        sessionForm.parking_id = activeParkings.value[0].id;
-        showParkingSelector.value = false;
-    } else {
-        showParkingSelector.value = true;
-    }
-    showModal.value = true;
-};
-
-const closeModal = () => { showModal.value = false; };
-
-const onPlateDetected = (plate) => { sessionForm.license_plate = plate; };
-const onImageSelected = (file) => { sessionForm.vehicle_image = file; };
-const onImageCleared = () => { sessionForm.vehicle_image = null; };
-
-const submitSession = () => {
-    if (selectedParking.value && !selectedParking.value.is_active) {
-        showBlockedParkingPopup(selectedParking.value.name);
-        return;
-    }
-
-    sessionForm.post(route('caissier.parking-sessions.store'), {
-        forceFormData: true,
-        onSuccess: () => { closeModal(); },
-        onError: () => {
-            if (sessionForm.errors.parking_id) {
-                showBlockedParkingPopup(selectedParking.value?.name);
-            }
-        },
     });
 };
 
@@ -195,17 +132,16 @@ const goToCheckout = () => {
             <div>
                 <h2 class="text-base font-black text-gray-500 uppercase tracking-widest mb-4">Actions rapides</h2>
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    <button
-                        type="button"
-                        @click="openModal"
+                    <Link
+                        :href="route('caissier.parking-sessions.index')"
                         class="flex flex-col items-center gap-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:border-blue-200 hover:shadow-md transition-all group">
                         <div class="w-10 h-10 rounded-xl bg-blue-50 group-hover:bg-blue-100 flex items-center justify-center transition-colors">
                             <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 4h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2zm4 4v8m0-8h3a2 2 0 010 4H9"/>
                             </svg>
                         </div>
-                        <span class="text-xs font-bold text-gray-700 text-center">Stationnements</span>
-                    </button>
+                        <span class="text-xs font-bold text-gray-700 text-center">Stationnements en cours</span>
+                    </Link>
                     <button
                         type="button"
                         @click="goToCheckout"
@@ -221,7 +157,7 @@ const goToCheckout = () => {
                         class="flex flex-col items-center gap-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:border-purple-200 hover:shadow-md transition-all group">
                         <div class="w-10 h-10 rounded-xl bg-purple-50 group-hover:bg-purple-100 flex items-center justify-center transition-colors">
                             <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13l-3 3m0 0l-3-3m3 3V8m0 13a9 9 0 110-18 9 9 0 010 18z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13l-3 3m0 0l-3-3m3 3V8m0 13a9 9 0 110-18 9 9 0 0118 0z"/>
                             </svg>
                         </div>
                         <span class="text-xs font-bold text-gray-700 text-center">Versements</span>
@@ -301,132 +237,5 @@ const goToCheckout = () => {
 
         </div>
     </AuthenticatedLayout>
-
-    <!-- ── Modal : Enregistrer un stationnement ───────────────── -->
-    <Teleport to="body">
-        <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" @mousedown.self="closeModal">
-            <div class="w-full max-w-2xl bg-white rounded-3xl shadow-xl overflow-hidden max-h-[90vh] flex flex-col">
-
-                <!-- Header -->
-                <div class="px-8 py-5 border-b border-gray-100 flex items-center justify-between shrink-0">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-orange-50 text-orange-700 flex items-center justify-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0zM13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h2" />
-                            </svg>
-                        </div>
-                        <div>
-                            <h3 class="font-bold text-gray-800 text-sm">Enregistrer un Stationnement</h3>
-                            <p class="text-xs text-gray-400">L'immatriculation est obligatoire. Marque et modèle sont optionnels.</p>
-                        </div>
-                    </div>
-                    <button type="button" @click="closeModal" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                    </button>
-                </div>
-
-                <!-- Form -->
-                <form @submit.prevent="submitSession" class="px-8 py-6 space-y-5 overflow-y-auto">
-
-                    <!-- Parking -->
-                    <div>
-                        <InputLabel value="Parking" class="text-sm font-semibold text-gray-700 mb-1.5" />
-                        <div v-if="activeParkings.length === 0" class="flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-red-50 border border-red-100 text-red-700 text-xs font-medium">
-                            {{ hasOnlyBlockedAssignedParkings ? 'Votre parking affecté est actuellement bloqué. Aucune action n\'est autorisée.' : 'Aucun parking ne vous est affecté. Contactez votre superviseur.' }}
-                        </div>
-                        <div v-else-if="isSingleParking" class="flex items-center gap-3 px-4 py-3 rounded-2xl border-2 border-[#143f85] bg-green-50">
-                            <div class="w-8 h-8 rounded-lg bg-[#143f85] text-white flex items-center justify-center flex-shrink-0">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                            </div>
-                            <div>
-                                <p class="text-sm font-bold text-gray-800">{{ activeParkings[0].name }}</p>
-                                <p class="text-xs text-gray-500">
-                                    Réf. {{ activeParkings[0].reference }} ·
-                                    <span :class="activeParkings[0].available_spots > 0 ? 'text-[#143f85]' : 'text-red-600'" class="font-semibold">
-                                        {{ activeParkings[0].available_spots }} place{{ activeParkings[0].available_spots !== 1 ? 's' : '' }} libre{{ activeParkings[0].available_spots !== 1 ? 's' : '' }}
-                                    </span>
-                                </p>
-                            </div>
-                        </div>
-                        <div v-else>
-                            <div v-if="!showParkingSelector && selectedParking" class="flex items-center justify-between gap-3 px-4 py-3 rounded-2xl border border-gray-200 bg-gray-50">
-                                <div>
-                                    <p class="text-sm font-bold text-gray-800">{{ selectedParking.name }}</p>
-                                    <p class="text-xs text-gray-500">
-                                        <span :class="selectedParking.available_spots > 0 ? 'text-green-600' : 'text-red-600'" class="font-semibold">
-                                            {{ selectedParking.available_spots }} place{{ selectedParking.available_spots !== 1 ? 's' : '' }} disponible{{ selectedParking.available_spots !== 1 ? 's' : '' }}
-                                        </span>
-                                    </p>
-                                </div>
-                                <button type="button" @click="showParkingSelector = true" class="text-xs text-orange-600 font-bold hover:underline shrink-0">Changer</button>
-                            </div>
-                            <select v-else v-model="sessionForm.parking_id" required
-                                class="block w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-800 focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all">
-                                <option value="" disabled>— Choisir un parking —</option>
-                                <option v-for="p in activeParkings" :key="p.id" :value="p.id" :disabled="p.available_spots <= 0">
-                                    {{ p.name }} ({{ p.available_spots }} place{{ p.available_spots !== 1 ? 's' : '' }} libre{{ p.available_spots !== 1 ? 's' : '' }})
-                                </option>
-                            </select>
-                        </div>
-                        <InputError class="mt-1.5" :message="sessionForm.errors.parking_id" />
-                    </div>
-
-                    <!-- Scanner IA -->
-                    <div>
-                        <InputLabel value="Photo du véhicule (optionnelle — détection IA de la plaque)" class="text-sm font-semibold text-gray-700 mb-1.5" />
-                        <LicensePlateScanner :loading="sessionForm.processing" @detected="onPlateDetected" @image-selected="onImageSelected" @clear="onImageCleared" />
-                        <InputError class="mt-1.5" :message="sessionForm.errors.vehicle_image" />
-                    </div>
-
-                    <!-- Immatriculation -->
-                    <div>
-                        <InputLabel for="caissier-modal-plate" value="Immatriculation *" class="text-sm font-semibold text-gray-700 mb-1.5" />
-                        <TextInput id="caissier-modal-plate" type="text" v-model="sessionForm.license_plate" required placeholder="ex: AA-000-BB"
-                            class="block w-full rounded-2xl border-gray-200 bg-gray-50 focus:bg-white focus:border-orange-500 focus:ring-orange-500/20 transition-all uppercase" />
-                        <InputError class="mt-1.5" :message="sessionForm.errors.license_plate" />
-                    </div>
-
-                    <!-- Marque & Modèle -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <div>
-                            <InputLabel for="caissier-modal-marque" value="Marque (optionnelle)" class="text-sm font-semibold text-gray-700 mb-1.5" />
-                            <TextInput id="caissier-modal-marque" type="text" v-model="sessionForm.marque" placeholder="ex: Toyota"
-                                class="block w-full rounded-2xl border-gray-200 bg-gray-50 focus:bg-white focus:border-orange-500 focus:ring-orange-500/20 transition-all" />
-                            <InputError class="mt-1.5" :message="sessionForm.errors.marque" />
-                        </div>
-                        <div>
-                            <InputLabel for="caissier-modal-modele" value="Modèle (optionnel)" class="text-sm font-semibold text-gray-700 mb-1.5" />
-                            <TextInput id="caissier-modal-modele" type="text" v-model="sessionForm.modele" placeholder="ex: Corolla"
-                                class="block w-full rounded-2xl border-gray-200 bg-gray-50 focus:bg-white focus:border-orange-500 focus:ring-orange-500/20 transition-all" />
-                            <InputError class="mt-1.5" :message="sessionForm.errors.modele" />
-                        </div>
-                    </div>
-
-                    <!-- Info -->
-                    <div class="flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-blue-50 border border-blue-100 text-blue-700 text-xs font-medium">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        La date et l'heure de stationnement seront enregistrées automatiquement.
-                    </div>
-
-                    <!-- Actions -->
-                    <div class="pt-4 border-t border-gray-100 flex items-center justify-between gap-4">
-                        <button type="button" @click="closeModal"
-                            class="px-5 py-2.5 rounded-xl border border-gray-200 text-sm font-bold text-gray-600 hover:bg-gray-50 transition-colors">
-                            Annuler
-                        </button>
-                        <PrimaryButton
-                            class="text-white px-7 py-2.5 rounded-xl font-bold shadow-md transition-all duration-200 hover:-translate-y-0.5 active:scale-95"
-                            :class="{ 'opacity-50 cursor-not-allowed': sessionForm.processing }"
-                            :disabled="sessionForm.processing || activeParkings.length === 0">
-                            <span v-if="sessionForm.processing">Enregistrement...</span>
-                            <span v-else>Enregistrer le Stationnement</span>
-                        </PrimaryButton>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </Teleport>
 </template>
 

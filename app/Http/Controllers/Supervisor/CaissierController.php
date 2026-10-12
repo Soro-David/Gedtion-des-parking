@@ -60,7 +60,7 @@ class CaissierController extends Controller
             'emergency_contact'      => 'nullable|string|max:20',
             'emergency_relationship' => 'nullable|string|max:50',
             'emergency_name'         => 'nullable|string|max:255',
-            'parking_ids'            => 'nullable|array|max:1',
+            'parking_ids'            => 'nullable|array',
             'parking_ids.*'          => 'exists:parkings,id',
         ]);
 
@@ -130,7 +130,7 @@ class CaissierController extends Controller
             'emergency_contact'      => 'nullable|string|max:20',
             'emergency_relationship' => 'nullable|string|max:50',
             'emergency_name'         => 'nullable|string|max:255',
-            'parking_ids'            => 'nullable|array|max:1',
+            'parking_ids'            => 'nullable|array',
             'parking_ids.*'          => 'exists:parkings,id',
         ]);
 
@@ -141,7 +141,7 @@ class CaissierController extends Controller
 
         $caissier->parkings()->sync($request->parking_ids ?? []);
 
-        return redirect()->route('supervisor.caissiers.index')
+        return redirect()->route('supervisor.users.index')
             ->with('success', 'Caissier mis à jour avec succès.');
     }
 

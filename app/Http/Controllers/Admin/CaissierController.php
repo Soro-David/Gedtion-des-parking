@@ -135,6 +135,8 @@ class CaissierController extends Controller
             'emergency_contact'      => 'nullable|string|max:20',
             'emergency_relationship' => 'nullable|string|max:50',
             'emergency_name'         => 'nullable|string|max:255',
+            'parking_ids'            => 'nullable|array',
+            'parking_ids.*'          => 'exists:parkings,id',
         ]);
 
         $caissier->update($request->only([
@@ -149,7 +151,7 @@ class CaissierController extends Controller
             'updated_by' => auth()->id(),
         ]);
 
-        return redirect()->route('admin.caissier.index')->with('success', 'Caissier mis à jour avec succès.');
+        return redirect()->route('admin.users.index')->with('success', 'Caissier mis à jour avec succès.');
     }
 
     /**

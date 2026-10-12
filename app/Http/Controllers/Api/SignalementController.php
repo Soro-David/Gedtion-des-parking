@@ -20,6 +20,14 @@ class SignalementController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
+        $user = auth()->user();
+        $assignedIds = $user->parkings()->pluck('parkings.id')->toArray();
+
+        // Si l'utilisateur a exactement un parking affecté, on écrase le parking_id par celui-ci
+        if (count($assignedIds) === 1) {
+            $request->merge(['parking_id' => $assignedIds[0]]);
+        }
+
         $request->validate([
             'parking_id'    => 'required|exists:parkings,id',
             'license_plate' => 'required|string|max:50',
@@ -27,11 +35,6 @@ class SignalementController extends Controller
             'type'          => 'nullable|string|in:interne,proprietaire',
             'phone'         => 'required_if:type,proprietaire|nullable|string|max:20',
         ]);
-
-        $user = auth()->user();
-
-        // Vérifier que le parking est affecté à l'utilisateur connecté
-        $assignedIds = $user->parkings()->pluck('parkings.id')->toArray();
         if (!in_array((int)$request->parking_id, $assignedIds)) {
             return response()->json([
                 'message' => 'Ce parking ne vous est pas affecté.'

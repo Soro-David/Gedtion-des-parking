@@ -58,7 +58,7 @@ class AttendantController extends Controller
             'emergency_contact'      => 'nullable|string|max:20',
             'emergency_relationship' => 'nullable|string|max:50',
             'emergency_name'         => 'nullable|string|max:255',
-            'parking_ids'            => 'nullable|array|max:1',
+            'parking_ids'            => 'nullable|array',
             'parking_ids.*'          => 'exists:parkings,id',
         ]);
 
@@ -119,7 +119,7 @@ class AttendantController extends Controller
             'emergency_contact'      => 'nullable|string|max:20',
             'emergency_relationship' => 'nullable|string|max:50',
             'emergency_name'         => 'nullable|string|max:255',
-            'parking_ids'            => 'nullable|array|max:1',
+            'parking_ids'            => 'nullable|array',
             'parking_ids.*'          => 'exists:parkings,id',
         ]);
 
@@ -135,7 +135,7 @@ class AttendantController extends Controller
             'updated_by' => auth()->id(),
         ]);
 
-        return redirect()->route('supervisor.attendants.index')
+        return redirect()->route('supervisor.users.index')
             ->with('success', 'Agent mis à jour avec succès.');
     }
 

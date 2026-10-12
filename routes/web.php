@@ -54,6 +54,7 @@ Route::get('/politique-confidentialite', [PublicController::class, 'politiqueCon
 // Invitation (set password) — accessible without authentication
 Route::get('/invitation/{token}', [InvitationController::class, 'show'])->name('invitation.show');
 Route::post('/invitation', [InvitationController::class, 'store'])->name('invitation.store');
+Route::get('/invitation-success', [InvitationController::class, 'success'])->name('invitation.success');
 
 Route::middleware('guest')->group(function () {
     Route::get('login', [AuthenticatedSessionController::class, 'create'])->name('login');

@@ -41,7 +41,7 @@ class PublicController extends Controller
                     'available'   => $available,
                     'saturation'  => $saturation,
                     'pct'         => $pct,
-                    'image'       => $parking->image,
+                    'image'       => $parking->image ? (filter_var($parking->image, FILTER_VALIDATE_URL) ? $parking->image : asset('storage/' . $parking->image)) : null,
                     'reference'   => $parking->reference,
                 ];
             });
@@ -90,5 +90,48 @@ class PublicController extends Controller
         // TODO: envoyer un email avec Mail::to(config('mail.from.address'))->send(new ContactMail($validated));
         // Pour l'instant, on retourne juste un succès 
         return back()->with('success', 'Votre message a bien été envoyé. Nous vous répondrons dans les plus brefs délais.');
+    }
+
+    /**
+     * API pour obtenir les parkings actifs pour les visiteurs.
+     */
+    public function accueilApi()
+    {
+        $parkings = Parking::where('is_active', true)
+            ->withCount('activeSessions')
+            ->get()
+            ->map(function ($parking) {
+                $occupied  = $parking->active_sessions_count ?? 0;
+                $available = max(0, $parking->capacity - $occupied);
+                $pct       = $parking->capacity > 0
+                    ? round($occupied / $parking->capacity * 100)
+                    : 0;
+
+                $saturation = match (true) {
+                    $pct >= 90 => 'saturé',
+                    $pct >= 60 => 'modéré',
+                    default    => 'disponible',
+                };
+
+                return [
+                    'id'          => $parking->id,
+                    'name'        => $parking->name,
+                    'address'     => $parking->address,
+                    'latitude'    => floatval($parking->latitude),
+                    'longitude'   => floatval($parking->longitude),
+                    'capacity'    => intval($parking->capacity),
+                    'occupied'    => intval($occupied),
+                    'available'   => intval($available),
+                    'saturation'  => $saturation,
+                    'pct'         => $pct,
+                    'price'       => floatval($parking->price),
+                    'image'       => $parking->image ? (filter_var($parking->image, FILTER_VALIDATE_URL) ? $parking->image : asset('storage/' . $parking->image)) : null,
+                    'reference'   => $parking->reference,
+                    'description' => 'Parking sécurisé ouvert 24h/24, 7j/7 avec contrôle d\'accès et caméras de surveillance.',
+                    'opening_hours' => '24h/24, 7j/7',
+                ];
+            });
+
+        return response()->json($parkings);
     }
 }

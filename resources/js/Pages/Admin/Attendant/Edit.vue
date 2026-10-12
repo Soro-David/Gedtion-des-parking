@@ -37,7 +37,7 @@ const submit = () => {
 
         <div class="max-w-4xl mx-auto pb-20">
             <div class="flex items-center gap-3 mb-8">
-                <Link :href="route('admin.agent.index')" class="p-2 rounded-xl text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200" title="Retour">
+                <Link :href="route('admin.users.index')" class="p-2 rounded-xl text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200" title="Retour">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
@@ -63,7 +63,7 @@ const submit = () => {
                     </div>
 
                     <div class="pt-8 border-t border-gray-100 flex items-center justify-between gap-4">
-                        <CancelButton :href="route('admin.agent.index')" />
+                        <CancelButton :href="route('admin.users.index')" />
                         <PrimaryButton class="px-10 py-4 rounded-[2rem] font-black text-sm" :disabled="form.processing">
                             Enregistrer les modifications
                         </PrimaryButton>
